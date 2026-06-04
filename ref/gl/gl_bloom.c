@@ -75,7 +75,7 @@ static const char *s_composite_fsh =
  "}\n";
 
 typedef GLuint (APIENTRY *pfnCreateShader_t)(GLenum);
-typedef void (APIENTRY *pfnShaderSource_t)(GLuint, GLsizei, const GLcharARB **, const GLint *);
+typedef void (APIENTRY *pfnShaderSource_t)(GLuint, GLsizei, const char **, const GLint *);
 typedef void (APIENTRY *pfnCompileShader_t)(GLuint);
 typedef void (APIENTRY *pfnGetShaderiv_t)(GLuint, GLenum, int *);
 typedef void (APIENTRY *pfnGetShaderInfoLog_t)(GLuint, GLsizei, GLsizei *, char *);
@@ -192,7 +192,7 @@ static GLuint compile_shader( GLenum type, const char *source )
 {
  GLuint shader;
  int compiled = 0;
- const GLcharARB *strings[1];
+ const char *strings[1];
  const GLint lengths[1];
 
  if( !source || !source[0] )
@@ -204,7 +204,7 @@ static GLuint compile_shader( GLenum type, const char *source )
  shader = s_bloom.CreateShader( type );
  if( !shader ) return 0;
 
- strings[0] = (const GLcharARB *)source;
+ strings[0] = source;
  lengths[0] = (GLint)Q_strlen( source );
  s_bloom.ShaderSource( shader, 1, strings, lengths );
  s_bloom.CompileShader( shader );
