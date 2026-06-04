@@ -62,13 +62,16 @@ def build(bld):
 	)
 
 	# GLES ImGui objects (with ES2, for GLES-based targets)
-	imgui_gles_objs = bld.objects(
-		source = imgui_cpp_source,
-		target = 'imgui_gles_objs',
-		includes = includes,
-		use = libs,
-		defines = ['REF_DLL=1', 'IMGUI_IMPL_OPENGL_ES2'],
-	)
+	need_gles_imgui = bld.env.GLWES or bld.env.GL4ES or bld.env.GLES3COMPAT
+	imgui_gles_objs = None
+	if need_gles_imgui:
+		imgui_gles_objs = bld.objects(
+			source = imgui_cpp_source,
+			target = 'imgui_gles_objs',
+			includes = includes,
+			use = libs,
+			defines = ['REF_DLL=1', 'IMGUI_IMPL_OPENGL_ES2'],
+		)
 
 	# Stub ImGui (empty implementations for targets without GLES 2.0+)
 	stub_node = imgui_dir.find_node('imgui_stubs.cpp')
@@ -125,6 +128,9 @@ def build(bld):
 		if v['imgui'] == 'stubs':
 			if imgui_stubs:
 				use_libs += ['imgui_stubs']
+		elif v['imgui'] == 'imgui_gles_objs':
+			if imgui_gles_objs:
+				use_libs += [v['imgui']]
 		elif v['imgui']:
 			use_libs += [v['imgui']]
 
