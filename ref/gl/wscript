@@ -52,9 +52,19 @@ def build(bld):
 		if node:
 			imgui_cpp_source.append(node)
 
+	# Desktop GL ImGui objects (without ES2, for ref_gl)
 	imgui_objs = bld.objects(
 		source = imgui_cpp_source,
 		target = 'imgui_objs',
+		includes = includes,
+		use = libs,
+		defines = ['REF_DLL=1'],
+	)
+
+	# GLES ImGui objects (with ES2, for GLES-based targets)
+	imgui_gles_objs = bld.objects(
+		source = imgui_cpp_source,
+		target = 'imgui_gles_objs',
 		includes = includes,
 		use = libs,
 		defines = ['REF_DLL=1', 'IMGUI_IMPL_OPENGL_ES2'],
@@ -77,26 +87,31 @@ def build(bld):
 			'enable':  bld.env.GL,
 			'libs':    ['GL', 'stdc++'],
 			'defines': ['XASH_GL_STATIC=1'] if bld.env.GL_STATIC else [],
+			'imgui':  'imgui_objs',
 		},
 		'ref_gles1': {
 			'enable':  bld.env.NANOGL,
 			'libs':    ['DL', 'nanogl', 'LOG', 'stdc++'],
 			'defines': ['XASH_NANOGL=1'],
+			'imgui':  'stubs',
 		},
 		'ref_gles2': {
 			'enable':  bld.env.GLWES,
 			'libs':    ['DL', 'gl-wes-v2', 'LOG', 'stdc++', 'GLESV2'],
 			'defines': ['XASH_WES=1'],
+			'imgui':  'imgui_gles_objs',
 		},
 		'ref_gl4es': {
 			'enable':  bld.env.GL4ES,
 			'libs':    ['DL', 'gl4es', 'LOG', 'stdc++'],
 			'defines': ['XASH_GL_STATIC=1', 'XASH_GL4ES=1'],
+			'imgui':  'imgui_gles_objs',
 		},
 		'ref_gles3compat': {
 			'enable':  bld.env.GLES3COMPAT,
 			'libs':    ['stdc++', 'GLESV2', 'GLESV3'],
 			'defines': ['XASH_GLES3COMPAT=1'],
+			'imgui':  'imgui_gles_objs',
 		},
 	}
 
@@ -107,11 +122,11 @@ def build(bld):
 			continue
 
 		use_libs = list(libs + v['libs'])
-		if k == 'ref_gles1':
+		if v['imgui'] == 'stubs':
 			if imgui_stubs:
 				use_libs += ['imgui_stubs']
-		else:
-			use_libs += ['imgui_objs']
+		elif v['imgui']:
+			use_libs += [v['imgui']]
 
 		bld.shlib(source = c_source,
 			target = k,
