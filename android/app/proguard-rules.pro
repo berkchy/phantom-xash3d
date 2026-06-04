@@ -27,6 +27,8 @@
     java.lang.String getCallingPackage();
     java.lang.String[] getAssetsList(boolean, java.lang.String);
     android.content.res.AssetManager getAssets(boolean);
+    void showMotdHtml(java.lang.String, java.lang.String, java.lang.String, int, int, int, int);
+    void hideMotdHtml();
 }
 
 -keep,includedescriptorclasses,allowoptimization class org.libsdl.app.SDLInputConnection {

@@ -1,8 +1,38 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
 	xmlns:app="http://schemas.android.com/apk/res-auto">
 	<item
+		android:id="@+id/action_search"
+		android:icon="@drawable/ic_baseline_search_24"
+		android:title="@string/search_games"
+		app:showAsAction="always|collapseActionView"
+		app:actionViewClass="androidx.appcompat.widget.SearchView" />
+	<item
+		android:id="@+id/action_toggle_view"
+		android:icon="@drawable/ic_baseline_view_module_24"
+		android:title="@string/grid_view"
+		app:showAsAction="ifRoom" />
+	<item
+		android:id="@+id/action_sort"
+		android:icon="@drawable/ic_baseline_sort_24"
+		android:title="@string/sort_by"
+		app:showAsAction="ifRoom">
+		<menu>
+			<item
+				android:id="@+id/action_sort_name_asc"
+				android:title="@string/sort_name_asc" />
+			<item
+				android:id="@+id/action_sort_name_desc"
+				android:title="@string/sort_name_desc" />
+		</menu>
+	</item>
+	<item
+		android:id="@+id/action_dedicated_server"
+		android:icon="@drawable/ic_baseline_dns_24"
+		android:title="@string/dedicated_server"
+		app:showAsAction="ifRoom" />
+	<item
 		android:id="@+id/action_settings"
 		android:icon="@drawable/ic_baseline_settings_24"
 		android:title="@string/app_settings"
-		app:showAsAction="always|withText" />
+		app:showAsAction="never" />
 </menu>

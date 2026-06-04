@@ -306,6 +306,13 @@ typedef struct cl_enginefuncs_s
 
 	// added in 2019 update, not documented yet
 	int		(*pfnFilteredClientCmd)( const char *cmd );
+
+	// Xash3D extension: renderer-backed Dear ImGui helpers for client HUD code.
+	void		(*pfnImGui_DrawText)( int x, int y, int r, int g, int b, int a, const char *text );
+	int		(*pfnImGui_GetTextWidth)( const char *text, float fontSize );
+	void		(*pfnShellExecute)( const char *path, const char *parms );
+	int		(*pfnShowHtmlMotd)( const char *html, const char *baseUrl, const char *serverName, int x, int y, int width, int height );
+	void		(*pfnHideHtmlMotd)( void );
 } cl_enginefunc_t;
 
 #define CLDLL_INTERFACE_VERSION	7

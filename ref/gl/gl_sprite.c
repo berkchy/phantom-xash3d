@@ -367,6 +367,9 @@ void R_DrawSpriteModel( cl_entity_t *e )
 	if( FBitSet( RI.rvp.flags, RF_DRAW_CUBEMAP ))
 		return;
 
+	if( r_fpsboost.value > 0.0f && e->curstate.rendermode == kRenderGlow )
+		return;
+
 	model_t *model = e->model;
 	msprite_t *psprite = (msprite_t *)model->cache.data;
 	vec3_t color, color2 = { 0.0f };

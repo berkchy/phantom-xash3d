@@ -2686,7 +2686,8 @@ static void GL_StudioDrawShadow( void )
 {
 	pglDepthMask( GL_TRUE );
 
-	if( r_shadows.value && g_studio.rendermode != kRenderTransAdd && !FBitSet( RI.currentmodel->flags, STUDIO_AMBIENT_LIGHT ))
+	if( r_shadows.value && r_fpsboost.value <= 0.0f && g_studio.rendermode != kRenderTransAdd
+		&& !FBitSet( RI.currentmodel->flags, STUDIO_AMBIENT_LIGHT ))
 	{
 		float	color = 1.0f - (tr.blend * 0.5f);
 

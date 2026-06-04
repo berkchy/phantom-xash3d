@@ -3028,6 +3028,35 @@ static int GAME_EXPORT pfnDrawStringReverse( int x, int y, const char *str, int 
 	return CL_DrawString( x, y, str, color, &cls.creditsFont, flags );
 }
 
+static void GAME_EXPORT pfnImGui_DrawText( int x, int y, int r, int g, int b, int a, const char *text )
+{
+	if( ref.dllFuncs.ImGui_DrawText )
+		ref.dllFuncs.ImGui_DrawText( x, y, r, g, b, a, text );
+}
+
+static int GAME_EXPORT pfnImGui_GetTextWidth( const char *text, float fontSize )
+{
+	if( !ref.dllFuncs.ImGui_GetTextWidth )
+		return 0;
+
+	return ref.dllFuncs.ImGui_GetTextWidth( text, fontSize );
+}
+
+static void GAME_EXPORT pfnShellExecute( const char *path, const char *parms )
+{
+	Platform_ShellExecute( path, parms );
+}
+
+static int GAME_EXPORT pfnShowHtmlMotd( const char *html, const char *baseUrl, const char *serverName, int x, int y, int width, int height )
+{
+	return Platform_ShowHtmlMotd( html, baseUrl, serverName, x, y, width, height );
+}
+
+static void GAME_EXPORT pfnHideHtmlMotd( void )
+{
+	Platform_HideHtmlMotd();
+}
+
 /*
 =============
 GetCareerGameInterface
@@ -3862,7 +3891,12 @@ static cl_enginefunc_t gEngfuncs =
 	pfnGetAppID,
 	Cmd_AliasGetList,
 	pfnVguiWrap2_GetMouseDelta,
-	pfnFilteredClientCmd
+	pfnFilteredClientCmd,
+	pfnImGui_DrawText,
+	pfnImGui_GetTextWidth,
+	pfnShellExecute,
+	pfnShowHtmlMotd,
+	pfnHideHtmlMotd
 };
 
 void CL_UnloadProgs( void )

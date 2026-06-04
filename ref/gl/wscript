@@ -9,11 +9,8 @@ top = '.'
 
 def options(opt):
 	grp = opt.add_option_group('ref_gl options')
-
 	grp.add_option('--enable-static-gl', action='store_true', dest='GL_STATIC', default=False,
 		help = 'enable direct linking to opengl [default: %(default)s]')
-
-	# stub
 	return
 
 def configure(conf):
@@ -21,55 +18,104 @@ def configure(conf):
 	if conf.env.GL_STATIC:
 		conf.check(lib='GL')
 
-	if conf.env.DEST_OS2 == 'android':
+	if conf.env.DEST_OS == 'android':
 		conf.check_cc(lib='log')
+		for lib in ['GLESv2', 'GLESv3']:
+			try:
+				conf.check_cc(lib=lib)
+			except:
+				pass
 
 def build(bld):
 	libs = [ 'ref_common', 'engine_includes', 'werror' ]
-	# on PSVita do not link any libraries that are already in the main executable, but add the includes target
 	if bld.env.DEST_OS == 'psvita':
 		libs += [ 'sdk_includes', 'vgl_shim' ]
 	else:
 		libs += [ 'public', 'M' ]
 
-	source = bld.path.ant_glob(['*.c', 'gl2_shim/*.c'])
-	includes = '.'
+	# C source files (engine renderer)
+	c_source = bld.path.ant_glob(['*.c', 'gl2_shim/*.c'])
+
+	imgui_dir = bld.path.parent.parent.find_dir('3rdparty/imgui')
+	includes = ['.', '../..', bld.path.parent.parent.find_node('3rdparty/imgui').abspath(),
+		bld.path.parent.parent.find_node('3rdparty/imgui/backends').abspath()]
+
+	# Full ImGui implementation (requires GLES 2.0+ shader support)
+	imgui_cpp_source = []
+	for f in ['imgui.cpp', 'imgui_draw.cpp', 'imgui_tables.cpp', 'imgui_widgets.cpp', 'imgui_engine.cpp']:
+		node = imgui_dir.find_node(f)
+		if node:
+			imgui_cpp_source.append(node)
+	backend_dir = imgui_dir.find_dir('backends')
+	if backend_dir:
+		node = backend_dir.find_node('imgui_impl_opengl3.cpp')
+		if node:
+			imgui_cpp_source.append(node)
+
+	imgui_objs = bld.objects(
+		source = imgui_cpp_source,
+		target = 'imgui_objs',
+		includes = includes,
+		use = libs,
+		defines = ['REF_DLL=1', 'IMGUI_IMPL_OPENGL_ES2'],
+	)
+
+	# Stub ImGui (empty implementations for targets without GLES 2.0+)
+	stub_node = imgui_dir.find_node('imgui_stubs.cpp')
+	imgui_stubs = None
+	if stub_node:
+		imgui_stubs = bld.objects(
+			source = [stub_node],
+			target = 'imgui_stubs',
+			includes = includes,
+			use = libs,
+			defines = ['REF_DLL=1'],
+		)
 
 	targets = {
 		'ref_gl': {
 			'enable':  bld.env.GL,
-			'libs':    ['GL'] if bld.env.GL_STATIC else [],
+			'libs':    ['GL', 'stdc++'],
 			'defines': ['XASH_GL_STATIC=1'] if bld.env.GL_STATIC else [],
 		},
 		'ref_gles1': {
 			'enable':  bld.env.NANOGL,
-			'libs':    ['DL', 'nanogl', 'LOG'],
+			'libs':    ['DL', 'nanogl', 'LOG', 'stdc++'],
 			'defines': ['XASH_NANOGL=1'],
 		},
 		'ref_gles2': {
 			'enable':  bld.env.GLWES,
-			'libs':    ['DL', 'gl-wes-v2', 'LOG'],
+			'libs':    ['DL', 'gl-wes-v2', 'LOG', 'stdc++', 'GLESV2'],
 			'defines': ['XASH_WES=1'],
 		},
 		'ref_gl4es': {
 			'enable':  bld.env.GL4ES,
-			'libs':    ['DL', 'gl4es', 'LOG'],
+			'libs':    ['DL', 'gl4es', 'LOG', 'stdc++'],
 			'defines': ['XASH_GL_STATIC=1', 'XASH_GL4ES=1'],
 		},
 		'ref_gles3compat': {
 			'enable':  bld.env.GLES3COMPAT,
-			'libs':    [],
+			'libs':    ['stdc++', 'GLESV2', 'GLESV3'],
 			'defines': ['XASH_GLES3COMPAT=1'],
 		},
 	}
+
+	bld.env.append_unique('LDFLAGS_cshlib', ['-lstdc++'])
 
 	for k,v in targets.items():
 		if not v['enable']:
 			continue
 
-		bld.shlib(source = source,
+		use_libs = list(libs + v['libs'])
+		if k == 'ref_gles1':
+			if imgui_stubs:
+				use_libs += ['imgui_stubs']
+		else:
+			use_libs += ['imgui_objs']
+
+		bld.shlib(source = c_source,
 			target = k,
 			includes = includes,
-			use = libs + v['libs'],
+			use = use_libs,
 			defines = v['defines'] + ['REF_DLL=1'],
 			install_path = bld.env.LIBDIR)

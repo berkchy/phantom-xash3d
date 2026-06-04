@@ -19,6 +19,10 @@ GNU General Public License for more details.
 #include "beamdef.h"
 #include "entity_types.h"
 
+/* ImGui engine functions (defined in imgui_engine.cpp) */
+extern void ImGui_Engine_NewFrame(void);
+extern void ImGui_Engine_Render(void);
+
 
 #define IsLiquidContents( cnt )	( cnt == CONTENTS_WATER || cnt == CONTENTS_SLIME || cnt == CONTENTS_LAVA )
 
@@ -331,6 +335,8 @@ R_GetFarClip
 */
 static float R_GetFarClip( void )
 {
+	if( r_fpsboost.value > 0.0f )
+		return 256.0f;
 	if( WORLDMODEL && FBitSet( RI.rvp.flags, RF_DRAW_WORLD ))
 		return gp_movevars->zmax * 1.73f;
 	return 2048.0f;
@@ -910,7 +916,8 @@ static void R_DrawEntitiesOnList( void )
 
 	if( FBitSet( RI.rvp.flags, RF_DRAW_WORLD ))
 	{
-		pglTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
+		if( glConfig.wrapper == GLES_WRAPPER_NONE )
+			pglTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
 		gEngfuncs.pfnDrawTransparentTriangles ();
 	}
 
@@ -1042,6 +1049,8 @@ void R_BeginFrame( qboolean clearScene )
 
 	R_CheckCvars();
 
+	ImGui_Engine_NewFrame();
+
 	R_Set2DMode( true );
 
 	// draw buffer stuff
@@ -1064,6 +1073,20 @@ set initial params for renderer
 void R_SetupRefParams( const ref_viewpass_t *rvp )
 {
 	RI.rvp = *rvp;
+
+	// dynamic resolution scaling
+	if( r_scale.value > 0.0f && r_scale.value < 1.0f )
+	{
+		float scale = bound( 0.25f, r_scale.value, 1.0f );
+		int w = RI.rvp.viewport[2];
+		int h = RI.rvp.viewport[3];
+		int sw = Q_max( (int)(w * scale), 1 );
+		int sh = Q_max( (int)(h * scale), 1 );
+		RI.rvp.viewport[0] += (w - sw) / 2;
+		RI.rvp.viewport[1] += (h - sh) / 2;
+		RI.rvp.viewport[2] = sw;
+		RI.rvp.viewport[3] = sh;
+	}
 
 	RI.farClip = 0;
 }
@@ -1121,8 +1144,15 @@ void R_EndFrame( void )
 #if !defined( XASH_GL_STATIC )
 	GL2_ShimEndFrame();
 #endif
+
+	/* Render ImGui draw data before buffer swap */
+	ImGui_Engine_Render();
+
 	// flush any remaining 2D bits
 	R_Set2DMode( false );
+
+	GL_BloomRender();
+
 	gEngfuncs.GL_SwapBuffers();
 }
 

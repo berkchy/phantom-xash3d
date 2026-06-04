@@ -15,6 +15,7 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.widget.SearchView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.MenuProvider
@@ -22,6 +23,8 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import su.xash.engine.BuildConfig
 import su.xash.engine.R
@@ -34,6 +37,7 @@ class LibraryFragment : Fragment(), MenuProvider {
 	private val binding get() = _binding!!
 
 	private val libraryViewModel: LibraryViewModel by activityViewModels()
+	private var gameAdapter: GameAdapter? = null
 
 	private val startActivityForResult =
 		registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -71,7 +75,7 @@ class LibraryFragment : Fragment(), MenuProvider {
 							)
 						)
 					}
-					setNeutralButton(R.string.done_check_permissions) { dialog, _ ->
+					setNeutralButton(R.string.done_check_permissions) { _, _ ->
 						checkStoragePermissions()
 					}
 					setCancelable(false)
@@ -131,8 +135,9 @@ class LibraryFragment : Fragment(), MenuProvider {
 	): View {
 		_binding = FragmentLibraryBinding.inflate(inflater, container, false)
 
-		val adapter = GameAdapter(libraryViewModel)
-		binding.gamesList.adapter = adapter
+		gameAdapter = GameAdapter(libraryViewModel, false)
+		binding.gamesList.adapter = gameAdapter
+		binding.gamesList.layoutManager = LinearLayoutManager(requireContext())
 
 		requireActivity().addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
 
@@ -146,8 +151,14 @@ class LibraryFragment : Fragment(), MenuProvider {
 			binding.swipeRefresh.isRefreshing = it
 		}
 
-		libraryViewModel.installedGames.observe(viewLifecycleOwner) {
-			(binding.gamesList.adapter as GameAdapter).submitList(it)
+		libraryViewModel.installedGames.observe(viewLifecycleOwner) { games ->
+			gameAdapter?.submitList(games)
+			binding.emptyState.visibility = if (games.isEmpty()) View.VISIBLE else View.GONE
+			binding.gamesList.visibility = if (games.isEmpty()) View.GONE else View.VISIBLE
+		}
+
+		binding.goToSettingsButton.setOnClickListener {
+			findNavController().navigate(R.id.action_libraryFragment_to_appSettingsFragment)
 		}
 
 		if (checkStoragePermissions()) {
@@ -162,16 +173,63 @@ class LibraryFragment : Fragment(), MenuProvider {
 
 	override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
 		menuInflater.inflate(R.menu.menu_library, menu)
+
+		val searchItem = menu.findItem(R.id.action_search)
+		val searchView = searchItem?.actionView as? SearchView
+		searchView?.queryHint = getString(R.string.search_games)
+		searchView?.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+			override fun onQueryTextSubmit(query: String?): Boolean {
+				libraryViewModel.updateSearchQuery(query ?: "")
+				return true
+			}
+
+			override fun onQueryTextChange(newText: String?): Boolean {
+				libraryViewModel.updateSearchQuery(newText ?: "")
+				return true
+			}
+		})
+		searchView?.setOnCloseListener {
+			libraryViewModel.updateSearchQuery("")
+			false
+		}
 	}
 
 	override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
 		when (menuItem.itemId) {
 			R.id.action_settings -> {
 				findNavController().navigate(R.id.action_libraryFragment_to_appSettingsFragment)
+				return true
+			}
+			R.id.action_toggle_view -> toggleViewMode(menuItem)
+			R.id.action_sort_name_asc -> libraryViewModel.updateSortOrder(SortOrder.NAME_ASC)
+			R.id.action_sort_name_desc -> libraryViewModel.updateSortOrder(SortOrder.NAME_DESC)
+			R.id.action_dedicated_server -> {
+				findNavController().navigate(R.id.action_libraryFragment_to_dedicatedServerFragment)
+				return true
 			}
 		}
-
 		return false
+	}
+
+	private fun toggleViewMode(item: MenuItem) {
+		libraryViewModel.toggleViewMode()
+		val isGrid = libraryViewModel.isGridView
+		item.icon = if (isGrid) {
+			requireContext().getDrawable(R.drawable.ic_baseline_view_list_24)
+		} else {
+			requireContext().getDrawable(R.drawable.ic_baseline_view_module_24)
+		}
+		item.title = if (isGrid) getString(R.string.list_view) else getString(R.string.grid_view)
+
+		val adapter = GameAdapter(libraryViewModel, isGrid)
+		gameAdapter = adapter
+		binding.gamesList.adapter = adapter
+		binding.gamesList.layoutManager = if (isGrid) {
+			GridLayoutManager(requireContext(), 2)
+		} else {
+			LinearLayoutManager(requireContext())
+		}
+		libraryViewModel.installedGames.value?.let { adapter.submitList(it) }
 	}
 
 	override fun onResume() {

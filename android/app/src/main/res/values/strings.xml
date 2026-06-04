@@ -2,7 +2,7 @@
 <resources>
 	<string name="app_name" translatable="false">Xash3D FWGS</string>
 	<string name="library">Library</string>
-	<string name="dedicated_server">Dedicated</string>
+	<string name="dedicated_server">Dedicated server</string>
 	<string name="app_settings">Settings</string>
 	<string name="game_settings">Game Settings</string>
 	<string name="game_settings_command_line">Command-line arguments</string>
@@ -14,6 +14,7 @@
 	<string name="preferences_server_package">Server package</string>
 	<string name="preferences_use_icons">Use icons instead of backgrounds</string>
 	<string name="game_data_location">Game data location</string>
+	<string name="preferences_use_android_data">Use Android/data directory</string>
 	<string name="file_access_required">All-files access required</string>
 	<string name="file_access_message">All-files access is required for the app to function properly.</string>
 	<string name="select_current_directory">Select current directory</string>
@@ -63,4 +64,31 @@
 	<string name="engine_update_permission_message">To install the update, allow Xash3D FWGS to install unknown apps in system settings.</string>
 	<string name="engine_update_open_settings">Open settings</string>
 	<string name="engine_install_failed">Update install failed: %1$s</string>
+	<string name="search_games">Search games</string>
+	<string name="no_games_found">No games found</string>
+	<string name="no_games_found_message">Place your game data in the configured directory or change the location in Settings.</string>
+	<string name="go_to_settings">Go to Settings</string>
+	<string name="grid_view">Grid view</string>
+	<string name="list_view">List view</string>
+	<string name="sort_by">Sort by</string>
+	<string name="sort_name_asc">Name A-Z</string>
+	<string name="sort_name_desc">Name Z-A</string>
+	<string name="dedicated_server_start">Start server</string>
+	<string name="dedicated_server_stop">Stop server</string>
+	<string name="server_status_stopped">Stopped</string>
+	<string name="server_status_running">Running</string>
+	<string name="server_settings">Server settings</string>
+	<string name="server_game">Game</string>
+	<string name="server_map">Map</string>
+	<string name="server_port">Port</string>
+	<string name="server_max_players">Max players</string>
+	<string name="server_console">Console</string>
+	<string name="server_notification_title">Xash3D Dedicated Server</string>
+	<string name="server_notification_text">%1$s — %2$s players, port %3$d</string>
+	<string name="channel_server">Server status</string>
+	<string name="server_extra_args">Extra arguments</string>
+	<string name="launch">Launch</string>
+	<string name="open_game_folder">Open game folder</string>
+	<string name="context_start">Start game</string>
+	<string name="context_settings">Game settings</string>
 </resources>

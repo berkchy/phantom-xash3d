@@ -6,7 +6,7 @@
 	android:layout_width="match_parent"
 	android:layout_height="match_parent">
 
-	<RelativeLayout
+	<FrameLayout
 		android:layout_width="match_parent"
 		android:layout_height="match_parent">
 
@@ -18,6 +18,48 @@
 			android:paddingHorizontal="8dp"
 			app:layoutManager="LinearLayoutManager"
 			tools:listitem="@layout/card_game" />
-	</RelativeLayout>
+
+		<LinearLayout
+			android:id="@+id/emptyState"
+			android:layout_width="match_parent"
+			android:layout_height="match_parent"
+			android:gravity="center"
+			android:orientation="vertical"
+			android:padding="32dp"
+			android:visibility="gone">
+
+			<ImageView
+				android:layout_width="64dp"
+				android:layout_height="64dp"
+				android:importantForAccessibility="no"
+				android:src="@drawable/ic_baseline_folder_open_24"
+				app:tint="@color/hl_orange" />
+
+			<TextView
+				style="@style/TextAppearance.Material3.TitleMedium"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_marginTop="16dp"
+				android:text="@string/no_games_found"
+				android:textColor="@android:color/white" />
+
+			<TextView
+				style="@style/TextAppearance.Material3.BodyMedium"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_marginTop="8dp"
+				android:gravity="center"
+				android:text="@string/no_games_found_message"
+				android:textColor="@android:color/darker_gray" />
+
+			<com.google.android.material.button.MaterialButton
+				android:id="@+id/goToSettingsButton"
+				style="@style/Widget.Material3.Button"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_marginTop="24dp"
+				android:text="@string/go_to_settings" />
+		</LinearLayout>
+	</FrameLayout>
 
 </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>

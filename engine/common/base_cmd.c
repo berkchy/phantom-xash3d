@@ -205,6 +205,42 @@ void BaseCmd_Remove( base_command_type_e type, const char *name )
 	Z_Free( i );
 }
 
+void BaseCmd_Lookup( base_command_type_e type, int checkbit, void *buffer, void *ptr, setpair_t callback )
+{
+	if( !callback ) return;
+
+	for( int hash = 0; hash < HASH_SIZE; hash++ )
+	{
+		for( base_command_hashmap_t *hm = hashed_cmds[hash]; hm; hm = hm->next )
+		{
+			if( hm->type != type )
+				continue;
+
+			if( !hm->name[0] )
+				continue;
+
+			if( buffer )
+			{
+				callback( hm->name, "", buffer, ptr );
+				continue;
+			}
+
+			if( !hm->basecmd )
+				continue;
+
+			convar_t *cv = (convar_t *)hm->basecmd;
+			if( !cv->name || !cv->name[0] || !cv->string )
+				continue;
+			if( checkbit && !FBitSet( cv->flags, checkbit ))
+				continue;
+
+			if( FBitSet( cv->flags, FCVAR_ALLOCATED|FCVAR_EXTENDED ))
+				callback( cv->name, cv->string, cv->desc ? cv->desc : "", ptr );
+			else callback( cv->name, cv->string, "", ptr );
+		}
+	}
+}
+
 /*
 ============
 BaseCmd_Init

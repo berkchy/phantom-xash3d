@@ -1055,16 +1055,9 @@ void R_DrawAliasModel( cl_entity_t *e )
 	pglAlphaFunc( GL_GREATER, DEFAULT_ALPHATEST );
 	pglDisable( GL_ALPHA_TEST );
 
-	if( r_shadows.value )
+	if( r_shadows.value && r_fpsboost.value <= 0.0f )
 	{
-		// need to compute transformation matrix
-		Matrix4x4_CreateFromEntity( RI.objectMatrix, e->angles, e->origin, 1.0f );
-		pglDisable( GL_TEXTURE_2D );
-		pglBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
-		pglEnable( GL_BLEND );
-		pglColor4f( 0.0f, 0.0f, 0.0f, 0.5f );
-		pglDepthFunc( GL_LESS );
-
+		// setup transform, disable textures, blend black
 		GL_DrawAliasShadow( m_pAliasHeader );
 
 		pglDepthFunc( GL_LEQUAL );

@@ -14,6 +14,9 @@
 		<action
 			android:id="@+id/action_libraryFragment_to_appSettingsFragment"
 			app:destination="@id/appSettingsFragment" />
+		<action
+			android:id="@+id/action_libraryFragment_to_dedicatedServerFragment"
+			app:destination="@id/dedicatedServerFragment" />
 	</fragment>
 	<fragment
 		android:id="@+id/gameSettingsFragment"
@@ -31,4 +34,8 @@
 		android:id="@+id/crashLogsFragment"
 		android:name="su.xash.engine.ui.settings.CrashLogsFragment"
 		android:label="@string/crash_logs" />
+	<fragment
+		android:id="@+id/dedicatedServerFragment"
+		android:name="su.xash.engine.ui.server.DedicatedServerFragment"
+		android:label="@string/dedicated_server" />
 </navigation>

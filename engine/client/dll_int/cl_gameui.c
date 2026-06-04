@@ -22,6 +22,7 @@ GNU General Public License for more details.
 #include "vid_common.h"
 
 static void 	UI_UpdateUserinfo( void );
+void UI_ImGui_TryLoadPendingFont( const char *reason );
 
 gameui_static_t	gameui;
 
@@ -1288,6 +1289,232 @@ static int pfnIsCvarReadOnly( const char *name )
 	return FBitSet( cv->flags, FCVAR_READ_ONLY ) ? 1 : 0;
 }
 
+static char g_imguiPendingFontPath[MAX_QPATH];
+static float g_imguiPendingFontSize;
+static qboolean g_imguiPendingFontValid;
+static qboolean g_imguiPendingFontLoaded;
+static qboolean g_imguiMissingLoadFontWarned;
+
+void UI_ImGui_TryLoadPendingFont( const char *reason )
+{
+	int result;
+
+	if( !g_imguiPendingFontValid || g_imguiPendingFontLoaded )
+		return;
+
+	if( !ref.dllFuncs.ImGui_LoadFont )
+	{
+		if( !g_imguiMissingLoadFontWarned )
+		{
+			Con_Printf( "ImGui: pending font \"%s\" size %.1f not loaded yet: renderer ImGui_LoadFont is NULL (reason=%s, ref.initialized=%d, ref.hInstance=%s)\n",
+				g_imguiPendingFontPath, g_imguiPendingFontSize, reason ? reason : "unknown", ref.initialized, ref.hInstance ? "set" : "NULL" );
+			g_imguiMissingLoadFontWarned = true;
+		}
+		return;
+	}
+
+	Con_Printf( "ImGui: retrying pending font \"%s\" size %.1f (reason=%s, ref.initialized=%d, ref.hInstance=%s)\n",
+		g_imguiPendingFontPath, g_imguiPendingFontSize, reason ? reason : "unknown", ref.initialized, ref.hInstance ? "set" : "NULL" );
+
+	result = ref.dllFuncs.ImGui_LoadFont( g_imguiPendingFontPath, g_imguiPendingFontSize );
+	Con_Printf( "ImGui: pending pfnImGui_LoadFont returned %d\n", result );
+
+	if( result )
+	{
+		g_imguiPendingFontLoaded = true;
+		g_imguiPendingFontValid = false;
+		g_imguiMissingLoadFontWarned = false;
+	}
+}
+
+static void pfnImGui_DrawText_Impl( int x, int y, int r, int g, int b, int a, const char *text )
+{
+	UI_ImGui_TryLoadPendingFont( "DrawText" );
+
+	if( ref.dllFuncs.ImGui_DrawText )
+		ref.dllFuncs.ImGui_DrawText( x, y, r, g, b, a, text );
+}
+
+static int pfnImGui_LoadFont_Impl( const char *fontPath, float fontSize )
+{
+	int result;
+
+	if( COM_StringEmptyOrNULL( fontPath ))
+	{
+		Con_Printf( "ImGui: engine wrapper LoadFont rejected empty path (size=%.1f)\n", fontSize );
+		return 0;
+	}
+
+	Q_strncpy( g_imguiPendingFontPath, fontPath, sizeof( g_imguiPendingFontPath ));
+	g_imguiPendingFontSize = fontSize;
+	g_imguiPendingFontValid = true;
+	g_imguiPendingFontLoaded = false;
+	g_imguiMissingLoadFontWarned = false;
+
+	Con_Printf( "ImGui: engine wrapper LoadFont request path=\"%s\" size=%.1f ref.initialized=%d ref.hInstance=%s renderer.LoadFont=%s\n",
+		fontPath, fontSize, ref.initialized, ref.hInstance ? "set" : "NULL", ref.dllFuncs.ImGui_LoadFont ? "set" : "NULL" );
+
+	if( !ref.dllFuncs.ImGui_LoadFont )
+	{
+		Con_Printf( "ImGui: engine wrapper LoadFont deferred because renderer ImGui_LoadFont is NULL\n" );
+		return 0;
+	}
+
+	result = ref.dllFuncs.ImGui_LoadFont( fontPath, fontSize );
+	Con_Printf( "ImGui: engine wrapper renderer LoadFont returned %d\n", result );
+
+	if( result )
+	{
+		g_imguiPendingFontLoaded = true;
+		g_imguiPendingFontValid = false;
+	}
+
+	return result;
+}
+
+static int pfnImGui_GetTextWidth_Impl( const char *text, float fontSize )
+{
+	UI_ImGui_TryLoadPendingFont( "GetTextWidth" );
+
+	if( !ref.dllFuncs.ImGui_GetTextWidth )
+		return 0;
+	return ref.dllFuncs.ImGui_GetTextWidth( text, fontSize );
+}
+
+static void pfnImGui_SetScreenSize_Impl( int width, int height )
+{
+	UI_ImGui_TryLoadPendingFont( "SetScreenSize" );
+
+	if( ref.dllFuncs.ImGui_SetScreenSize )
+		ref.dllFuncs.ImGui_SetScreenSize( width, height );
+}
+
+static int pfnImGui_LoadFontHandle_Impl( const char *fontPath, float fontSize )
+{
+	UI_ImGui_TryLoadPendingFont( "LoadFontHandle" );
+
+	if( !ref.dllFuncs.ImGui_LoadFontHandle )
+	{
+		Con_Printf( "ImGui: engine wrapper LoadFontHandle unavailable for \"%s\" size %.1f\n",
+			fontPath ? fontPath : "(null)", fontSize );
+		return 0;
+	}
+
+	return ref.dllFuncs.ImGui_LoadFontHandle( fontPath, fontSize );
+}
+
+static void pfnImGui_DrawTextFont_Impl( int fontHandle, int x, int y, int r, int g, int b, int a, const char *text, float fontSize )
+{
+	UI_ImGui_TryLoadPendingFont( "DrawTextFont" );
+
+	if( ref.dllFuncs.ImGui_DrawTextFont )
+		ref.dllFuncs.ImGui_DrawTextFont( fontHandle, x, y, r, g, b, a, text, fontSize );
+}
+
+static int pfnImGui_GetTextWidthFont_Impl( int fontHandle, const char *text, float fontSize )
+{
+	UI_ImGui_TryLoadPendingFont( "GetTextWidthFont" );
+
+	if( !ref.dllFuncs.ImGui_GetTextWidthFont )
+		return 0;
+	return ref.dllFuncs.ImGui_GetTextWidthFont( fontHandle, text, fontSize );
+}
+
+static int pfnImGui_Begin_Impl( const char *name, int flags )
+{
+	if( !ref.dllFuncs.ImGui_Begin )
+		return 0;
+	return ref.dllFuncs.ImGui_Begin( name, flags );
+}
+
+static void pfnImGui_End_Impl( void )
+{
+	if( ref.dllFuncs.ImGui_End )
+		ref.dllFuncs.ImGui_End();
+}
+
+static void pfnImGui_Text_Impl( const char *text )
+{
+	if( ref.dllFuncs.ImGui_Text )
+		ref.dllFuncs.ImGui_Text( text );
+}
+
+static void pfnImGui_TextColored_Impl( int r, int g, int b, int a, const char *text )
+{
+	if( ref.dllFuncs.ImGui_TextColored )
+		ref.dllFuncs.ImGui_TextColored( r, g, b, a, text );
+}
+
+static int pfnImGui_Button_Impl( const char *label, float width, float height )
+{
+	if( !ref.dllFuncs.ImGui_Button )
+		return 0;
+	return ref.dllFuncs.ImGui_Button( label, width, height );
+}
+
+static int pfnImGui_Checkbox_Impl( const char *label, int *value )
+{
+	if( !ref.dllFuncs.ImGui_Checkbox )
+		return 0;
+	return ref.dllFuncs.ImGui_Checkbox( label, value );
+}
+
+static int pfnImGui_SliderFloat_Impl( const char *label, float *value, float minValue, float maxValue, const char *format )
+{
+	if( !ref.dllFuncs.ImGui_SliderFloat )
+		return 0;
+	return ref.dllFuncs.ImGui_SliderFloat( label, value, minValue, maxValue, format );
+}
+
+static void pfnImGui_SetNextWindowPos_Impl( float x, float y, int cond )
+{
+	if( ref.dllFuncs.ImGui_SetNextWindowPos )
+		ref.dllFuncs.ImGui_SetNextWindowPos( x, y, cond );
+}
+
+static void pfnImGui_SetNextWindowSize_Impl( float width, float height, int cond )
+{
+	if( ref.dllFuncs.ImGui_SetNextWindowSize )
+		ref.dllFuncs.ImGui_SetNextWindowSize( width, height, cond );
+}
+
+static void pfnImGui_SetCursorPos_Impl( float x, float y )
+{
+	if( ref.dllFuncs.ImGui_SetCursorPos )
+		ref.dllFuncs.ImGui_SetCursorPos( x, y );
+}
+
+static void pfnImGui_SameLine_Impl( float offsetFromStartX, float spacing )
+{
+	if( ref.dllFuncs.ImGui_SameLine )
+		ref.dllFuncs.ImGui_SameLine( offsetFromStartX, spacing );
+}
+
+static void pfnImGui_Separator_Impl( void )
+{
+	if( ref.dllFuncs.ImGui_Separator )
+		ref.dllFuncs.ImGui_Separator();
+}
+
+static void pfnImGui_Spacing_Impl( void )
+{
+	if( ref.dllFuncs.ImGui_Spacing )
+		ref.dllFuncs.ImGui_Spacing();
+}
+
+static int pfnImGui_BeginChild_Impl( const char *id, float width, float height, int border, int flags )
+{
+	if( !ref.dllFuncs.ImGui_BeginChild )
+		return 0;
+	return ref.dllFuncs.ImGui_BeginChild( id, width, height, border, flags );
+}
+
+static void pfnImGui_EndChild_Impl( void )
+{
+	if( ref.dllFuncs.ImGui_EndChild )
+		ref.dllFuncs.ImGui_EndChild();
+}
+
 static ui_extendedfuncs_t gExtendedfuncs =
 {
 	pfnEnableTextInput,
@@ -1304,6 +1531,29 @@ static ui_extendedfuncs_t gExtendedfuncs =
 	pfnGetGameInfo,
 	pfnGetModInfo,
 	pfnIsCvarReadOnly,
+	/* ImGui functions */
+	pfnImGui_DrawText_Impl,
+	pfnImGui_LoadFont_Impl,
+	pfnImGui_GetTextWidth_Impl,
+	pfnImGui_SetScreenSize_Impl,
+	pfnImGui_LoadFontHandle_Impl,
+	pfnImGui_DrawTextFont_Impl,
+	pfnImGui_GetTextWidthFont_Impl,
+	pfnImGui_Begin_Impl,
+	pfnImGui_End_Impl,
+	pfnImGui_Text_Impl,
+	pfnImGui_TextColored_Impl,
+	pfnImGui_Button_Impl,
+	pfnImGui_Checkbox_Impl,
+	pfnImGui_SliderFloat_Impl,
+	pfnImGui_SetNextWindowPos_Impl,
+	pfnImGui_SetNextWindowSize_Impl,
+	pfnImGui_SetCursorPos_Impl,
+	pfnImGui_SameLine_Impl,
+	pfnImGui_Separator_Impl,
+	pfnImGui_Spacing_Impl,
+	pfnImGui_BeginChild_Impl,
+	pfnImGui_EndChild_Impl,
 };
 
 void UI_UnloadProgs( void )

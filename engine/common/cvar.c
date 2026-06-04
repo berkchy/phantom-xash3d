@@ -355,23 +355,25 @@ void Cvar_LookupVars( int checkbit, void *buffer, void *ptr, setpair_t callback 
 	// nothing to process ?
 	if( !callback ) return;
 
-	// force checkbit to 0 for lookup all cvars
+	if( buffer )
+	{
+		// Completion path: use the hash table and avoid dereferencing basecmd.
+		BaseCmd_Lookup( HM_CVAR, checkbit, buffer, ptr, callback );
+		return;
+	}
+
+	// Log/config path: keep the linked list traversal for full value/description access.
 	for( convar_t *var = cvar_vars; var; var = var->next )
 	{
+		if( !var || !var->name || !var->name[0] || !var->string )
+			continue;
+
 		if( checkbit && !FBitSet( var->flags, checkbit ))
 			continue;
 
-		if( buffer )
-		{
-			callback( var->name, var->string, buffer, ptr );
-		}
-		else
-		{
-			// NOTE: dlls cvars doesn't have description
-			if( FBitSet( var->flags, FCVAR_ALLOCATED|FCVAR_EXTENDED ))
-				callback( var->name, var->string, var->desc, ptr );
-			else callback( var->name, var->string, "", ptr );
-		}
+		if( FBitSet( var->flags, FCVAR_ALLOCATED|FCVAR_EXTENDED ))
+			callback( var->name, var->string, var->desc ? var->desc : "", ptr );
+		else callback( var->name, var->string, "", ptr );
 	}
 }
 
@@ -385,11 +387,20 @@ The flags will be or'ed in if the variable exists.
 */
 convar_t *Cvar_Get( const char *name, const char *value, uint32_t flags, const char *var_desc )
 {
-	convar_t *cur, *find, *var;
+	convar_t *var;
 	cmd_t *cmd;
 	cmdalias_t *alias;
 
 	ASSERT( name && *name );
+	if( !name || !name[0] )
+	{
+		Con_DPrintf( S_ERROR "refusing to get invalid cvar name\n" );
+		return NULL;
+	}
+	if( !value )
+		value = "";
+	if( !var_desc )
+		var_desc = "";
 
 	BaseCmd_FindAll( name, &cmd, &alias, &var );
 
@@ -428,7 +439,7 @@ convar_t *Cvar_Get( const char *name, const char *value, uint32_t flags, const c
 			Cvar_DirectSet( var, value );
 		}
 
-		if( FBitSet( var->flags, FCVAR_ALLOCATED ) && Q_strcmp( var_desc, var->desc ))
+		if( FBitSet( var->flags, FCVAR_ALLOCATED ) && var->desc && Q_strcmp( var_desc, var->desc ))
 		{
 			size_t len = Q_strlen( var_desc ) + 1;
 
@@ -452,12 +463,9 @@ convar_t *Cvar_Get( const char *name, const char *value, uint32_t flags, const c
 	var->value = Q_atof( var->string );
 	var->flags = flags|FCVAR_ALLOCATED;
 
-	// link the variable in alphanumerical order
-	for( cur = NULL, find = cvar_vars; find && Q_strcmp( find->name, var->name ) < 0; cur = find, find = find->next );
-
-	if( cur ) cur->next = var;
-	else cvar_vars = var;
-	var->next = find;
+	// link the variable at the head to avoid traversing a potentially damaged chain
+	var->next = cvar_vars;
+	cvar_vars = var;
 
 	// fill it cls.userinfo, svs.serverinfo
 	Cvar_UpdateInfo( var, var->string, false );
@@ -497,11 +505,18 @@ Adds a freestanding variable to the variable list.
 */
 void Cvar_RegisterVariable( convar_t *var )
 {
-	convar_t *cur, *find, *dup;
+	convar_t *dup;
 	cmd_t *cmd;
 	cmdalias_t *alias;
 
 	ASSERT( var != NULL );
+	if( !var || !var->name || !var->name[0] )
+	{
+		Con_DPrintf( S_ERROR "refusing to register invalid cvar\n" );
+		return;
+	}
+	if( !var->string )
+		var->string = "";
 
 	// first check to see if it has allready been defined
 	BaseCmd_FindAll( var->name, &cmd, &alias, &dup );
@@ -537,13 +552,9 @@ void Cvar_RegisterVariable( convar_t *var )
 	var->string = copystringpool( cvar_pool, var->string );
 	var->value = Q_atof( var->string );
 
-	// find the supposed position in chain (alphanumerical order)
-	for( cur = NULL, find = cvar_vars; find && Q_strcmp( find->name, var->name ) < 0; cur = find, find = find->next );
-
-	// now link variable
-	if( cur ) cur->next = var;
-	else cvar_vars = var;
-	var->next = find;
+	// now link variable at the head to avoid traversing a potentially damaged chain
+	var->next = cvar_vars;
+	cvar_vars = var;
 
 	// fill it cls.userinfo, svs.serverinfo
 	Cvar_UpdateInfo( var, var->string, false );

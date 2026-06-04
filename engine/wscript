@@ -194,6 +194,8 @@ def build(bld):
 
 	# include platform-specific sources, this shall not fail if directory doesn't exist
 	source += bld.path.ant_glob('platform/%s/*.c' % bld.env.DEST_OS)
+	if bld.env.DEST_OS != 'android':
+		source += ['platform/html_motd.c']
 
 	# Android _is_ Linux based, after all
 	if bld.env.DEST_OS == 'android':
@@ -245,15 +247,25 @@ def build(bld):
 		# but dedicated server is enabled. They're both called 'xash' in this case
 		server_source = copy(source)
 		server_libs = copy(libs)
-		bld.program(
-			source = server_source,
-			target = 'xash',
-			use = server_libs,
-			includes = includes,
-			defines = 'XASH_ENABLE_MAIN=1 XASH_DEDICATED=1',
-			rpath = bld.env.DEFAULT_RPATH,
-			install_path = bld.env.BINDIR,
-		)
+		if bld.env.DEST_OS == 'android':
+			bld.shlib(
+				source = server_source,
+				target = 'xash_dedicated',
+				use = server_libs,
+				includes = includes,
+				defines = 'XASH_ENABLE_MAIN=1 XASH_DEDICATED=1',
+				install_path = bld.env.LIBDIR,
+			)
+		else:
+			bld.program(
+				source = server_source,
+				target = 'xash',
+				use = server_libs,
+				includes = includes,
+				defines = 'XASH_ENABLE_MAIN=1 XASH_DEDICATED=1',
+				rpath = bld.env.DEFAULT_RPATH,
+				install_path = bld.env.BINDIR,
+			)
 
 		# the execution stucks on macOS, disable for now
 		if bld.env.TESTS and Utils.unversioned_sys_platform() != 'darwin':

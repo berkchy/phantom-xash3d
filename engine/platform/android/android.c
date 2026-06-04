@@ -34,6 +34,8 @@ struct jnimethods_s
 	jmethodID loadAndroidID;
 	jmethodID getAndroidID;
 	jmethodID saveAndroidID;
+	jmethodID showMotdHtml;
+	jmethodID hideMotdHtml;
 } jni;
 
 void Android_Init( void )
@@ -47,6 +49,8 @@ void Android_Init( void )
 	jni.loadAndroidID = (*jni.env)->GetMethodID( jni.env, jni.actcls, "loadAndroidID", "()Ljava/lang/String;" );
 	jni.getAndroidID = (*jni.env)->GetMethodID( jni.env, jni.actcls, "getAndroidID", "()Ljava/lang/String;" );
 	jni.saveAndroidID = (*jni.env)->GetMethodID( jni.env, jni.actcls, "saveAndroidID", "(Ljava/lang/String;)V" );
+	jni.showMotdHtml = (*jni.env)->GetMethodID( jni.env, jni.actcls, "showMotdHtml", "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;IIII)V" );
+	jni.hideMotdHtml = (*jni.env)->GetMethodID( jni.env, jni.actcls, "hideMotdHtml", "()V" );
 #endif // !XASH_SDL
 }
 
@@ -130,4 +134,36 @@ void Platform_ShellExecute( const char *path, const char *parms )
 #if XASH_SDL
 	SDL_OpenURL( path );
 #endif // XASH_SDL
+}
+
+int Platform_ShowHtmlMotd( const char *html, const char *baseUrl, const char *serverName, int x, int y, int width, int height )
+{
+#if XASH_SDL
+	if( !jni.env || !jni.activity || !jni.showMotdHtml )
+		return 0;
+
+	jstring jHtml = (*jni.env)->NewStringUTF( jni.env, html ? html : "" );
+	jstring jBaseUrl = (*jni.env)->NewStringUTF( jni.env, baseUrl ? baseUrl : "" );
+	jstring jServerName = (*jni.env)->NewStringUTF( jni.env, serverName ? serverName : "" );
+	(*jni.env)->CallVoidMethod( jni.env, jni.activity, jni.showMotdHtml, jHtml, jBaseUrl, jServerName, x, y, width, height );
+	(*jni.env)->DeleteLocalRef( jni.env, jHtml );
+	(*jni.env)->DeleteLocalRef( jni.env, jBaseUrl );
+	(*jni.env)->DeleteLocalRef( jni.env, jServerName );
+	return 1;
+#else
+	return 0;
+#endif
+}
+
+void Platform_HideHtmlMotd( void )
+{
+#if XASH_SDL
+	if( jni.env && jni.activity && jni.hideMotdHtml )
+		(*jni.env)->CallVoidMethod( jni.env, jni.activity, jni.hideMotdHtml );
+#endif
+}
+
+JNIEXPORT void JNICALL Java_su_xash_engine_XashActivity_nativeMotdClosed( JNIEnv *env, jclass clazz )
+{
+	Cbuf_AddText( "motd_close\n" );
 }

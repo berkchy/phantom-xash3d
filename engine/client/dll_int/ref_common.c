@@ -23,6 +23,8 @@ GNU General Public License for more details.
 
 struct ref_state_s ref;
 
+extern void UI_ImGui_TryLoadPendingFont( const char *reason );
+
 ref_globals_t refState =
 {
 	// just have something valid until video subsystem is finished initializing
@@ -589,6 +591,7 @@ static qboolean R_LoadProgs( const char *name )
 
 	R_CreateBuiltinTextures();
 	CL_FillTriAPI( &gTriApi );
+	UI_ImGui_TryLoadPendingFont( "R_LoadProgs" );
 
 	return true;
 }
@@ -694,16 +697,22 @@ static void R_CollectRendererNames( void )
 #if XASH_REF_GL_ENABLED
 		"gl",
 #endif
+#if XASH_ANDROID && XASH_REF_GL4ES_ENABLED
+		"gl4es",
+#endif
+#if XASH_ANDROID && XASH_REF_GLES3COMPAT_ENABLED
+		"gles3compat",
+#endif
 #if XASH_REF_NANOGL_ENABLED
 		"gles1",
 #endif
 #if XASH_REF_GLWES_ENABLED
 		"gles2",
 #endif
-#if XASH_REF_GL4ES_ENABLED
+#if !XASH_ANDROID && XASH_REF_GL4ES_ENABLED
 		"gl4es",
 #endif
-#if XASH_REF_GLES3COMPAT_ENABLED
+#if !XASH_ANDROID && XASH_REF_GLES3COMPAT_ENABLED
 		"gles3compat",
 #endif
 #if XASH_REF_SOFT_ENABLED
@@ -717,16 +726,22 @@ static void R_CollectRendererNames( void )
 #if XASH_REF_GL_ENABLED
 		"OpenGL",
 #endif
+#if XASH_ANDROID && XASH_REF_GL4ES_ENABLED
+		"GL4ES",
+#endif
+#if XASH_ANDROID && XASH_REF_GLES3COMPAT_ENABLED
+		"GLES3 (gl2_shim)",
+#endif
 #if XASH_REF_NANOGL_ENABLED
 		"GLES1 (NanoGL)",
 #endif
 #if XASH_REF_GLWES_ENABLED
 		"GLES2 (gl-wes-v2)",
 #endif
-#if XASH_REF_GL4ES_ENABLED
+#if !XASH_ANDROID && XASH_REF_GL4ES_ENABLED
 		"GL4ES",
 #endif
-#if XASH_REF_GLES3COMPAT_ENABLED
+#if !XASH_ANDROID && XASH_REF_GLES3COMPAT_ENABLED
 		"GLES3 (gl2_shim)",
 #endif
 #if XASH_REF_SOFT_ENABLED
@@ -804,10 +819,19 @@ qboolean R_Init( void )
 	{
 		Q_strncpy( requested_cvar, r_refdll.string, sizeof( requested_cvar ));
 
+#if XASH_ANDROID
+		if( !Q_stricmp( requested_cvar, "gles1" ))
+		{
+			Con_Printf( "Renderer gles1 from r_refdll ignored on Android because ImGui needs a GLES2+ renderer; trying default renderer order\n" );
+			requested_cvar[0] = 0;
+		}
+#endif
+
 		// do not show scary messages to user if renderer set in config cannot be loaded
 		// as game data could be copied from one platform to another, where this renderer
 		// might not be supported (ref_gl on Android for example)
-		success = R_LoadRenderer( requested_cvar, !host_developer.value );
+		if( requested_cvar[0] )
+			success = R_LoadRenderer( requested_cvar, !host_developer.value );
 	}
 
 	if( !success )

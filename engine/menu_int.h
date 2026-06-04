@@ -229,6 +229,30 @@ typedef struct ui_extendedfuncs_s {
 	// returns 1 if cvar has read-only flag
 	// or -1 if cvar not found
 	int (*pfnIsCvarReadOnly)( const char *name );
+
+	// ImGui functions (added for custom font rendering)
+	void (*pfnImGui_DrawText)( int x, int y, int r, int g, int b, int a, const char *text );
+	int (*pfnImGui_LoadFont)( const char *fontPath, float fontSize );
+	int (*pfnImGui_GetTextWidth)( const char *text, float fontSize );
+	void (*pfnImGui_SetScreenSize)( int width, int height );
+	int (*pfnImGui_LoadFontHandle)( const char *fontPath, float fontSize );
+	void (*pfnImGui_DrawTextFont)( int fontHandle, int x, int y, int r, int g, int b, int a, const char *text, float fontSize );
+	int (*pfnImGui_GetTextWidthFont)( int fontHandle, const char *text, float fontSize );
+	int (*pfnImGui_Begin)( const char *name, int flags );
+	void (*pfnImGui_End)( void );
+	void (*pfnImGui_Text)( const char *text );
+	void (*pfnImGui_TextColored)( int r, int g, int b, int a, const char *text );
+	int (*pfnImGui_Button)( const char *label, float width, float height );
+	int (*pfnImGui_Checkbox)( const char *label, int *value );
+	int (*pfnImGui_SliderFloat)( const char *label, float *value, float minValue, float maxValue, const char *format );
+	void (*pfnImGui_SetNextWindowPos)( float x, float y, int cond );
+	void (*pfnImGui_SetNextWindowSize)( float width, float height, int cond );
+	void (*pfnImGui_SetCursorPos)( float x, float y );
+	void (*pfnImGui_SameLine)( float offsetFromStartX, float spacing );
+	void (*pfnImGui_Separator)( void );
+	void (*pfnImGui_Spacing)( void );
+	int (*pfnImGui_BeginChild)( const char *id, float width, float height, int border, int flags );
+	void (*pfnImGui_EndChild)( void );
 } ui_extendedfuncs_t;
 
 // deprecated export from old engine

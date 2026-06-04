@@ -423,7 +423,8 @@ void GL_Cull( GLenum cull )
 
 void GL_SetRenderMode( int mode )
 {
-	pglTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
+	if( glConfig.wrapper == GLES_WRAPPER_NONE )
+		pglTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
 
 	switch( mode )
 	{

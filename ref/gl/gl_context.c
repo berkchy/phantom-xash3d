@@ -13,6 +13,30 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 */
 
+/* ImGui engine functions (defined in imgui_engine.cpp) */
+void ImGui_Engine_DrawText(int x, int y, int r, int g, int b, int a, const char *text);
+int ImGui_Engine_LoadFont(const char *fontPath, float fontSize);
+int ImGui_Engine_GetTextWidth(const char *text, float fontSize);
+void ImGui_Engine_SetScreenSize(int width, int height);
+int ImGui_Engine_LoadFontHandle(const char *fontPath, float fontSize);
+void ImGui_Engine_DrawTextFont(int fontHandle, int x, int y, int r, int g, int b, int a, const char *text, float fontSize);
+int ImGui_Engine_GetTextWidthFont(int fontHandle, const char *text, float fontSize);
+int ImGui_Engine_Begin(const char *name, int flags);
+void ImGui_Engine_End(void);
+void ImGui_Engine_Text(const char *text);
+void ImGui_Engine_TextColored(int r, int g, int b, int a, const char *text);
+int ImGui_Engine_Button(const char *label, float width, float height);
+int ImGui_Engine_Checkbox(const char *label, int *value);
+int ImGui_Engine_SliderFloat(const char *label, float *value, float minValue, float maxValue, const char *format);
+void ImGui_Engine_SetNextWindowPos(float x, float y, int cond);
+void ImGui_Engine_SetNextWindowSize(float width, float height, int cond);
+void ImGui_Engine_SetCursorPos(float x, float y);
+void ImGui_Engine_SameLine(float offsetFromStartX, float spacing);
+void ImGui_Engine_Separator(void);
+void ImGui_Engine_Spacing(void);
+int ImGui_Engine_BeginChild(const char *id, float width, float height, int border, int flags);
+void ImGui_Engine_EndChild(void);
+
 // GL API function pointers, if any, reside in this translation unit
 #define APIENTRY_LINKAGE
 #include "gl_local.h"
@@ -575,5 +599,28 @@ const ref_interface_t gReffuncs =
 	R_FillTriAPI,
 
 	VGUI_SetupDrawing,
-};
 
+	/* ImGui functions */
+	ImGui_Engine_DrawText,
+	ImGui_Engine_LoadFont,
+	ImGui_Engine_GetTextWidth,
+	ImGui_Engine_SetScreenSize,
+	ImGui_Engine_LoadFontHandle,
+	ImGui_Engine_DrawTextFont,
+	ImGui_Engine_GetTextWidthFont,
+	ImGui_Engine_Begin,
+	ImGui_Engine_End,
+	ImGui_Engine_Text,
+	ImGui_Engine_TextColored,
+	ImGui_Engine_Button,
+	ImGui_Engine_Checkbox,
+	ImGui_Engine_SliderFloat,
+	ImGui_Engine_SetNextWindowPos,
+	ImGui_Engine_SetNextWindowSize,
+	ImGui_Engine_SetCursorPos,
+	ImGui_Engine_SameLine,
+	ImGui_Engine_Separator,
+	ImGui_Engine_Spacing,
+	ImGui_Engine_BeginChild,
+	ImGui_Engine_EndChild,
+};

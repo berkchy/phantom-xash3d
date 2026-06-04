@@ -539,6 +539,7 @@ enum
 	GL_BUFFER_STORAGE_EXT,
 	GL_MAP_BUFFER_RANGE_EXT,
 	GL_DRAW_RANGE_ELEMENTS_BASE_VERTEX_EXT,
+	GL_ARB_FRAMEBUFFER_OBJECT_EXT,
 	GL_EXTCOUNT,		// must be last
 };
 
@@ -742,6 +743,14 @@ extern convar_t r_ripple_updatetime;
 extern convar_t r_ripple_spawntime;
 extern convar_t r_large_lightmaps;
 
+extern convar_t	r_fpsboost;
+extern convar_t	r_scale;
+extern convar_t	gl_light_override;
+extern convar_t	gl_light_r;
+extern convar_t	gl_light_g;
+extern convar_t	gl_light_b;
+extern convar_t	gl_light_a;
+
 //
 // engine shared convars
 //
@@ -751,6 +760,11 @@ extern convar_t r_large_lightmaps;
 //
 #include "crtlib.h"
 
-
+//
+// bloom
+//
+extern void GL_BloomInit( void );
+extern void GL_BloomShutdown( void );
+extern void GL_BloomRender( void );
 
 #endif // GL_LOCAL_H

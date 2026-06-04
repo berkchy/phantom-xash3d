@@ -8,9 +8,21 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings.Secure;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.TextView;
 
 import org.libsdl.app.SDLActivity;
 
@@ -24,11 +36,16 @@ import java.util.List;
 public class XashActivity extends SDLActivity {
 	private boolean mUseVolumeKeys;
 	private String mPackageName;
+	private FrameLayout mMotdOverlay;
+	private WebView mMotdWebView;
 	private static final String TAG = "XashActivity";
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+
+		if (handleStopDedicated(getIntent()))
+			return;
 
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -37,6 +54,20 @@ public class XashActivity extends SDLActivity {
 		}
 
 		AndroidBug5497Workaround.assistActivity(this);
+	}
+
+	@Override
+	protected void onNewIntent(Intent intent) {
+		super.onNewIntent(intent);
+		handleStopDedicated(intent);
+	}
+
+	private boolean handleStopDedicated(Intent intent) {
+		if (intent != null && "su.xash.engine.STOP_DEDICATED".equals(intent.getAction())) {
+			finish();
+			return true;
+		}
+		return false;
 	}
 
 	@Override
@@ -67,6 +98,321 @@ public class XashActivity extends SDLActivity {
 
 	private String loadAndroidID() {
 		return getSharedPreferences("xash_preferences", MODE_PRIVATE).getString("xash_id", "");
+	}
+
+	private static native void nativeMotdClosed();
+
+	private Typeface loadMotdTypeface() {
+		try {
+			return Typeface.createFromAsset(getAssets(), "gfx/fonts/cs_regular.ttf");
+		} catch (Exception ignored) {
+		}
+
+		String[] paths = {
+			Environment.getExternalStorageDirectory().getAbsolutePath() + "/xash/cstrike/gfx/fonts/cs_regular.ttf",
+			Environment.getExternalStorageDirectory().getAbsolutePath() + "/xash/valve/gfx/fonts/cs_regular.ttf",
+			getFilesDir().getAbsolutePath() + "/gamelibs/cstrike/gfx/fonts/cs_regular.ttf",
+			getFilesDir().getAbsolutePath() + "/gamelibs/valve/gfx/fonts/cs_regular.ttf"
+		};
+
+		for (String path : paths) {
+			try {
+				File file = new File(path);
+				if (file.exists() && file.length() > 0)
+					return Typeface.createFromFile(file);
+			} catch (Exception ignored) {
+			}
+		}
+
+		return Typeface.DEFAULT_BOLD;
+	}
+
+	private String stripGoldSrcColorCodes(String text) {
+		if (text == null || text.isEmpty())
+			return "";
+
+		StringBuilder clean = new StringBuilder(text.length());
+		for (int i = 0; i < text.length(); i++) {
+			char c = text.charAt(i);
+			if (c == '^' && i + 1 < text.length()) {
+				char next = text.charAt(i + 1);
+				if (next >= '0' && next <= '9') {
+					i++;
+					continue;
+				}
+			}
+			clean.append(c);
+		}
+		return clean.toString();
+	}
+
+	private GradientDrawable makeMotdOutline(int fillColor, int strokeWidth, int strokeColor, float radius) {
+		GradientDrawable drawable = new GradientDrawable();
+		drawable.setColor(fillColor);
+		drawable.setStroke(strokeWidth, strokeColor);
+		drawable.setCornerRadius(radius);
+		return drawable;
+	}
+
+	private TextView makeMotdControl(String text, float textSize) {
+		TextView control = new TextView(this);
+		control.setText(text);
+		control.setTextColor(Color.rgb(255, 190, 48));
+		control.setTextSize(textSize);
+		control.setGravity(Gravity.CENTER);
+		control.setIncludeFontPadding(false);
+		control.setClickable(true);
+		control.setBackground(makeMotdOutline(Color.argb(173, 0, 0, 0), 1, Color.rgb(255, 190, 48), 4.0f));
+		return control;
+	}
+
+	private void scrollMotdBy(int dx, int dy) {
+		if (mMotdWebView == null)
+			return;
+
+		mMotdWebView.scrollBy(dx, dy);
+		String script = "(function(){var e=document.scrollingElement||document.documentElement||document.body;"
+			+ "if(e&&e.scrollBy)e.scrollBy(" + dx + "," + dy + ");"
+			+ "else window.scrollBy(" + dx + "," + dy + ");})()";
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
+			mMotdWebView.evaluateJavascript(script, null);
+		else
+			mMotdWebView.loadUrl("javascript:" + script);
+	}
+
+	private void updateMotdScrollControls(View up, View down, View verticalTrack, View left, View right, View horizontalTrack) {
+		if (mMotdWebView == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT)
+			return;
+
+		String script = "(function(){var e=document.scrollingElement||document.documentElement||document.body;"
+			+ "return [e.scrollWidth,e.clientWidth,e.scrollHeight,e.clientHeight].join(',');})()";
+		mMotdWebView.evaluateJavascript(script, value -> {
+			if (value == null)
+				return;
+
+			String clean = value.replace("\"", "");
+			String[] parts = clean.split(",");
+			if (parts.length != 4)
+				return;
+
+			try {
+				int scrollWidth = (int)Float.parseFloat(parts[0]);
+				int clientWidth = (int)Float.parseFloat(parts[1]);
+				int scrollHeight = (int)Float.parseFloat(parts[2]);
+				int clientHeight = (int)Float.parseFloat(parts[3]);
+				int horizontalVisibility = scrollWidth > clientWidth + 2 ? View.VISIBLE : View.GONE;
+				int verticalVisibility = scrollHeight > clientHeight + 2 ? View.VISIBLE : View.GONE;
+
+				left.setVisibility(horizontalVisibility);
+				right.setVisibility(horizontalVisibility);
+				horizontalTrack.setVisibility(horizontalVisibility);
+				up.setVisibility(verticalVisibility);
+				down.setVisibility(verticalVisibility);
+				verticalTrack.setVisibility(verticalVisibility);
+			} catch (NumberFormatException ignored) {
+			}
+		});
+	}
+
+	@SuppressLint("SetJavaScriptEnabled")
+	private void showMotdHtml(String html, String baseUrl, String serverName, int x, int y, int width, int height) {
+		runOnUiThread(() -> {
+			hideMotdHtml();
+
+			FrameLayout content = findViewById(android.R.id.content);
+			mMotdOverlay = new FrameLayout(this);
+			mMotdOverlay.setBackgroundColor(Color.TRANSPARENT);
+			mMotdOverlay.setClickable(false);
+			mMotdOverlay.setFocusable(true);
+
+			int displayWidth = getResources().getDisplayMetrics().widthPixels;
+			int displayHeight = getResources().getDisplayMetrics().heightPixels;
+			int panelWidth = width > 0 ? width : (int)(displayWidth * 0.64f);
+			int panelHeight = height > 0 ? height : (int)(displayHeight * 0.76f);
+			int panelX = x >= 0 ? x : (displayWidth - panelWidth) / 2;
+			int panelY = y >= 0 ? y : (displayHeight - panelHeight) / 2;
+
+			if (panelWidth > displayWidth - 40)
+				panelWidth = displayWidth - 40;
+			if (panelHeight > displayHeight - 40)
+				panelHeight = displayHeight - 40;
+			if (panelX < 20)
+				panelX = 20;
+			if (panelY < 20)
+				panelY = 20;
+			if (panelX + panelWidth > displayWidth - 20)
+				panelX = displayWidth - panelWidth - 20;
+			if (panelY + panelHeight > displayHeight - 20)
+				panelY = displayHeight - panelHeight - 20;
+
+			FrameLayout panel = new FrameLayout(this);
+			panel.setClickable(true);
+			GradientDrawable panelBackground = new GradientDrawable();
+			panelBackground.setColor(Color.argb(179, 0, 0, 0));
+			panelBackground.setCornerRadius(14.0f);
+			panel.setBackground(panelBackground);
+			FrameLayout.LayoutParams panelParams = new FrameLayout.LayoutParams(
+				panelWidth,
+				panelHeight
+			);
+			panelParams.leftMargin = panelX;
+			panelParams.topMargin = panelY;
+			mMotdOverlay.addView(panel, panelParams);
+
+			FrameLayout inner = new FrameLayout(this);
+			inner.setBackground(makeMotdOutline(Color.TRANSPARENT, 1, Color.rgb(255, 190, 48), 10.0f));
+			FrameLayout.LayoutParams innerParams = new FrameLayout.LayoutParams(
+				ViewGroup.LayoutParams.MATCH_PARENT,
+				ViewGroup.LayoutParams.MATCH_PARENT
+			);
+			innerParams.setMargins(24, 58, 48, 54);
+			panel.addView(inner, innerParams);
+
+			Typeface motdTypeface = loadMotdTypeface();
+
+			TextView logo = new TextView(this);
+			logo.setText("-");
+			logo.setTypeface(motdTypeface);
+			logo.setTextColor(Color.rgb(255, 190, 48));
+			logo.setTextSize(22.0f);
+			logo.setGravity(Gravity.CENTER);
+			logo.setIncludeFontPadding(false);
+			FrameLayout.LayoutParams logoParams = new FrameLayout.LayoutParams(44, 44, Gravity.LEFT | Gravity.TOP);
+			logoParams.leftMargin = 24;
+			logoParams.topMargin = 8;
+			panel.addView(logo, logoParams);
+
+			TextView title = new TextView(this);
+			String cleanServerName = stripGoldSrcColorCodes(serverName).trim();
+			String titleText = cleanServerName.isEmpty() ? "Message of the Day" : cleanServerName;
+			title.setText(titleText);
+			title.setTypeface(Typeface.DEFAULT_BOLD);
+			title.setTextColor(Color.rgb(255, 190, 48));
+			title.setTextSize(12.0f);
+			title.setSingleLine(true);
+			title.setGravity(Gravity.CENTER_VERTICAL);
+			FrameLayout.LayoutParams titleParams = new FrameLayout.LayoutParams(
+				ViewGroup.LayoutParams.MATCH_PARENT,
+				38,
+				Gravity.LEFT | Gravity.TOP
+			);
+			titleParams.setMargins(70, 12, 64, 0);
+			panel.addView(title, titleParams);
+
+			mMotdWebView = new WebView(this);
+			mMotdWebView.setBackgroundColor(Color.TRANSPARENT);
+
+			WebSettings settings = mMotdWebView.getSettings();
+			settings.setJavaScriptEnabled(true);
+			settings.setDomStorageEnabled(true);
+			settings.setLoadWithOverviewMode(true);
+			settings.setUseWideViewPort(true);
+			settings.setBuiltInZoomControls(false);
+			settings.setDisplayZoomControls(false);
+			settings.setAllowFileAccess(true);
+			settings.setAllowContentAccess(true);
+			mMotdWebView.setHorizontalScrollBarEnabled(false);
+			mMotdWebView.setVerticalScrollBarEnabled(false);
+
+			FrameLayout.LayoutParams webParams = new FrameLayout.LayoutParams(
+				ViewGroup.LayoutParams.MATCH_PARENT,
+				ViewGroup.LayoutParams.MATCH_PARENT
+			);
+			webParams.setMargins(10, 10, 10, 10);
+			inner.addView(mMotdWebView, webParams);
+
+			TextView up = makeMotdControl("^", 14.0f);
+			up.setOnClickListener(v -> scrollMotdBy(0, -80));
+			FrameLayout.LayoutParams upParams = new FrameLayout.LayoutParams(26, 26, Gravity.RIGHT | Gravity.TOP);
+			upParams.setMargins(0, 58, 14, 0);
+			panel.addView(up, upParams);
+
+			TextView down = makeMotdControl("v", 14.0f);
+			down.setOnClickListener(v -> scrollMotdBy(0, 80));
+			FrameLayout.LayoutParams downParams = new FrameLayout.LayoutParams(26, 26, Gravity.RIGHT | Gravity.BOTTOM);
+			downParams.setMargins(0, 0, 14, 54);
+			panel.addView(down, downParams);
+
+			TextView verticalTrack = new TextView(this);
+			verticalTrack.setBackground(makeMotdOutline(Color.argb(173, 0, 0, 0), 1, Color.rgb(255, 190, 48), 4.0f));
+			FrameLayout.LayoutParams verticalTrackParams = new FrameLayout.LayoutParams(26, ViewGroup.LayoutParams.MATCH_PARENT, Gravity.RIGHT | Gravity.TOP);
+			verticalTrackParams.setMargins(0, 86, 14, 84);
+			panel.addView(verticalTrack, verticalTrackParams);
+
+			TextView left = makeMotdControl("<", 16.0f);
+			left.setOnClickListener(v -> scrollMotdBy(-80, 0));
+			FrameLayout.LayoutParams leftParams = new FrameLayout.LayoutParams(26, 26, Gravity.LEFT | Gravity.BOTTOM);
+			leftParams.setMargins(184, 0, 0, 26);
+			panel.addView(left, leftParams);
+
+			TextView right = makeMotdControl(">", 16.0f);
+			right.setOnClickListener(v -> scrollMotdBy(80, 0));
+			FrameLayout.LayoutParams rightParams = new FrameLayout.LayoutParams(26, 26, Gravity.RIGHT | Gravity.BOTTOM);
+			rightParams.setMargins(0, 0, 48, 26);
+			panel.addView(right, rightParams);
+
+			TextView horizontalTrack = new TextView(this);
+			horizontalTrack.setBackground(makeMotdOutline(Color.argb(173, 0, 0, 0), 1, Color.rgb(255, 190, 48), 4.0f));
+			FrameLayout.LayoutParams horizontalTrackParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 26, Gravity.LEFT | Gravity.BOTTOM);
+			horizontalTrackParams.setMargins(212, 0, 76, 26);
+			panel.addView(horizontalTrack, horizontalTrackParams);
+
+			up.setVisibility(View.GONE);
+			down.setVisibility(View.GONE);
+			verticalTrack.setVisibility(View.GONE);
+			left.setVisibility(View.GONE);
+			right.setVisibility(View.GONE);
+			horizontalTrack.setVisibility(View.GONE);
+
+			mMotdWebView.setWebViewClient(new WebViewClient() {
+				@Override
+				public void onPageFinished(WebView view, String url) {
+					updateMotdScrollControls(up, down, verticalTrack, left, right, horizontalTrack);
+					view.postDelayed(() -> updateMotdScrollControls(up, down, verticalTrack, left, right, horizontalTrack), 500);
+					view.postDelayed(() -> updateMotdScrollControls(up, down, verticalTrack, left, right, horizontalTrack), 1500);
+				}
+			});
+
+			TextView ok = makeMotdControl("OK", 12.0f);
+			ok.setTypeface(Typeface.DEFAULT);
+			ok.setBackground(makeMotdOutline(Color.argb(173, 0, 0, 0), 1, Color.rgb(255, 190, 48), 4.0f));
+			ok.setOnClickListener(v -> {
+				hideMotdHtml();
+				nativeMotdClosed();
+			});
+			FrameLayout.LayoutParams okParams = new FrameLayout.LayoutParams(150, 30, Gravity.LEFT | Gravity.BOTTOM);
+			okParams.leftMargin = 24;
+			okParams.bottomMargin = 14;
+			panel.addView(ok, okParams);
+
+			content.addView(mMotdOverlay, new FrameLayout.LayoutParams(
+				ViewGroup.LayoutParams.MATCH_PARENT,
+				ViewGroup.LayoutParams.MATCH_PARENT
+			));
+
+			String data = html == null ? "" : html.trim();
+			if (data.startsWith("http://") || data.startsWith("https://")) {
+				mMotdWebView.loadUrl(data);
+			} else {
+				String resolvedBaseUrl = (baseUrl == null || baseUrl.isEmpty()) ? "https://xash-motd.local/" : baseUrl;
+				mMotdWebView.loadDataWithBaseURL(resolvedBaseUrl, html == null ? "" : html, "text/html", "UTF-8", null);
+			}
+		});
+	}
+
+	private void hideMotdHtml() {
+		runOnUiThread(() -> {
+			FrameLayout content = findViewById(android.R.id.content);
+			if (mMotdWebView != null) {
+				mMotdWebView.stopLoading();
+				mMotdWebView.destroy();
+				mMotdWebView = null;
+			}
+			if (mMotdOverlay != null) {
+				content.removeView(mMotdOverlay);
+				mMotdOverlay = null;
+			}
+		});
 	}
 
 	@Override

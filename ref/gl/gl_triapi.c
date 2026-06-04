@@ -40,7 +40,8 @@ set rendermode
 void TriRenderMode( int mode )
 {
 	ds.renderMode = mode;
-	pglTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
+	if( glConfig.wrapper == GLES_WRAPPER_NONE )
+		pglTexEnvi( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
 
 	switch( mode )
 	{
@@ -367,4 +368,3 @@ void TriBrightness( float brightness )
 
 	_TriColor4f( r, g, b, 1.0f );
 }
-

@@ -39,7 +39,13 @@ CVAR_DEFINE_AUTO( r_ripple, "0", FCVAR_GLCONFIG, "enable software-like water tex
 CVAR_DEFINE_AUTO( r_ripple_updatetime, "0.05", FCVAR_GLCONFIG, "how fast ripple simulation is" );
 CVAR_DEFINE_AUTO( r_ripple_spawntime, "0.1", FCVAR_GLCONFIG, "how fast new ripples spawn" );
 CVAR_DEFINE_AUTO( r_large_lightmaps, "0", FCVAR_GLCONFIG|FCVAR_LATCH, "enable larger lightmap atlas textures (might break custom renderer mods)" );
-
+CVAR_DEFINE_AUTO( r_fpsboost, "0", 0, "maximize FPS: 1=moderate, 2=aggressive (disables water, nearest filtering, detail tex)" );
+CVAR_DEFINE_AUTO( r_scale, "1.0", 0, "dynamic resolution scale (0.25-1.0, lower = faster)" );
+CVAR_DEFINE_AUTO( gl_light_override, "0", 0, "override map light color (0=original, 1=override with gl_light_r/g/b/a)" );
+CVAR_DEFINE_AUTO( gl_light_r, "255", 0, "map light red override (0-255)" );
+CVAR_DEFINE_AUTO( gl_light_g, "255", 0, "map light green override (0-255)" );
+CVAR_DEFINE_AUTO( gl_light_b, "255", 0, "map light blue override (0-255)" );
+CVAR_DEFINE_AUTO( gl_light_a, "255", 0, "map light alpha/brightness override (0-255)" );
 
 gl_globals_t	tr;
 glconfig_t	glConfig;
@@ -418,6 +424,29 @@ static const dllfunc_t multitexturefuncs_es2[] MAYBE_UNUSED =
 {
 { GL_CALL( glActiveTexture ) },
 { GL_CALL( glActiveTextureARB ) },
+};
+
+static const dllfunc_t fbofuncs[] =
+{
+{ GL_CALL( glIsRenderbuffer ) },
+{ GL_CALL( glBindRenderbuffer ) },
+{ GL_CALL( glDeleteRenderbuffers ) },
+{ GL_CALL( glGenRenderbuffers ) },
+{ GL_CALL( glRenderbufferStorage ) },
+{ GL_CALL( glRenderbufferStorageMultisample ) },
+{ GL_CALL( glGetRenderbufferParameteriv ) },
+{ GL_CALL( glIsFramebuffer ) },
+{ GL_CALL( glBindFramebuffer ) },
+{ GL_CALL( glDeleteFramebuffers ) },
+{ GL_CALL( glGenFramebuffers ) },
+{ GL_CALL( glCheckFramebufferStatus ) },
+{ GL_CALL( glFramebufferTexture1D ) },
+{ GL_CALL( glFramebufferTexture2D ) },
+{ GL_CALL( glFramebufferTexture3D ) },
+{ GL_CALL( glFramebufferRenderbuffer ) },
+{ GL_CALL( glGetFramebufferAttachmentParameteriv ) },
+{ GL_CALL( glBlitFramebuffer ) },
+{ GL_CALL( glGenerateMipmap ) },
 };
 
 #endif // !XASH_GL_STATIC
@@ -820,6 +849,12 @@ static void GL_InitExtensionsGLES( void )
 			GL_CheckExtension( "GL_EXT_buffer_storage", bufferstoragefuncs, ARRAYSIZE( bufferstoragefuncs ), "gl_buffer_storage", GL_BUFFER_STORAGE_EXT, 0);
 			break;
 
+#if !XASH_GL_STATIC
+		case GL_ARB_FRAMEBUFFER_OBJECT_EXT:
+			GL_CheckExtension( "GL_OES_framebuffer_object", fbofuncs, ARRAYSIZE( fbofuncs ), "gl_framebuffer_object", extid, 2.0 );
+			break;
+#endif
+
 #endif
 		case GL_DEBUG_OUTPUT:
 			if( glw_state.extended )
@@ -942,6 +977,7 @@ static void GL_InitExtensionsBigGL( void )
 		GL_CheckExtension( "shader_objects", shaderobjectsfuncs_gles, ARRAYSIZE( shaderobjectsfuncs_gles ), "gl_shaderobjects", GL_SHADER_OBJECTS_EXT, 2.0 );
 	else
 		GL_CheckExtension( "GL_ARB_shader_objects", shaderobjectsfuncs, ARRAYSIZE( shaderobjectsfuncs ), "gl_shaderobjects", GL_SHADER_OBJECTS_EXT, 2.0 );
+	GL_CheckExtension( "GL_ARB_framebuffer_object", fbofuncs, ARRAYSIZE( fbofuncs ), "gl_framebuffer_object", GL_ARB_FRAMEBUFFER_OBJECT_EXT, 3.0  );
 	GL_CheckExtension( "GL_ARB_vertex_array_object", vaofuncs, ARRAYSIZE( vaofuncs ), "gl_vertex_array_object", GL_ARB_VERTEX_ARRAY_OBJECT_EXT, 3.0 );
 	GL_CheckExtension( "GL_ARB_buffer_storage", bufferstoragefuncs, ARRAYSIZE( bufferstoragefuncs ), "gl_buffer_storage", GL_BUFFER_STORAGE_EXT, 4.4);
 	GL_CheckExtension( "GL_ARB_map_buffer_range", mapbufferrangefuncs, ARRAYSIZE( mapbufferrangefuncs ), "gl_map_buffer_range", GL_MAP_BUFFER_RANGE_EXT , 3.0);
@@ -1158,6 +1194,13 @@ static void GL_InitCommands( void )
 	gEngfuncs.Cvar_RegisterVariable( &r_vbo_overbrightmode );
 	gEngfuncs.Cvar_RegisterVariable( &r_vbo_detail );
 	gEngfuncs.Cvar_RegisterVariable( &r_large_lightmaps );
+	gEngfuncs.Cvar_RegisterVariable( &r_fpsboost );
+	gEngfuncs.Cvar_RegisterVariable( &r_scale );
+	gEngfuncs.Cvar_RegisterVariable( &gl_light_override );
+	gEngfuncs.Cvar_RegisterVariable( &gl_light_r );
+	gEngfuncs.Cvar_RegisterVariable( &gl_light_g );
+	gEngfuncs.Cvar_RegisterVariable( &gl_light_b );
+	gEngfuncs.Cvar_RegisterVariable( &gl_light_a );
 
 	gEngfuncs.Cvar_RegisterVariable( &gl_extensions );
 	gEngfuncs.Cvar_RegisterVariable( &gl_texture_nearest );
@@ -1280,6 +1323,7 @@ qboolean R_Init( void )
 	R_AliasInit();
 	R_ClearDecals();
 	R_ClearScene();
+	GL_BloomInit();
 
 	return true;
 }
@@ -1289,12 +1333,16 @@ qboolean R_Init( void )
 R_Shutdown
 ===============
 */
+extern void ImGui_Engine_Shutdown( void );
+
 void R_Shutdown( void )
 {
 	if( !glw_state.initialized )
 		return;
 
 	GL_RemoveCommands();
+	ImGui_Engine_Shutdown();
+	GL_BloomShutdown();
 	R_ShutdownImages();
 #if !XASH_GLES && !XASH_GL_STATIC
 	GL2_ShimShutdown();
@@ -1348,12 +1396,14 @@ void GL_CheckForErrors_( const char *filename, const int fileline )
 	if( !gl_check_errors.value || !gpGlobals->developer )
 		return;
 
-	int err = pglGetError();
+	int err;
+	while( ( err = pglGetError() ) != GL_NO_ERROR )
+	{
+		if( glConfig.wrapper == GLES_WRAPPER_GL4ES && err == GL_INVALID_ENUM )
+			continue;
 
-	if( err == GL_NO_ERROR )
-		return;
-
-	gEngfuncs.Con_Printf( S_OPENGL_ERROR "%s (at %s:%i)\n", GL_ErrorString( err ), filename, fileline );
+		gEngfuncs.Con_Printf( S_OPENGL_ERROR "%s (at %s:%i)\n", GL_ErrorString( err ), filename, fileline );
+	}
 }
 
 void GL_SetupAttributes( int safegl )

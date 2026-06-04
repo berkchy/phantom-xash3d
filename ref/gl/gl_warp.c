@@ -592,7 +592,7 @@ void R_AnimateRipples( void )
 {
 	double frametime = gp_cl->time - g_ripple.time;
 
-	g_ripple.update = r_ripple.value && frametime >= r_ripple_updatetime.value;
+	g_ripple.update = r_ripple.value && r_fpsboost.value <= 0.0f && frametime >= r_ripple_updatetime.value;
 
 	if( !g_ripple.update )
 		return;

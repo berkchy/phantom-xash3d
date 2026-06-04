@@ -653,6 +653,30 @@ typedef struct ref_interface_s
 
 	// vgui drawing implementation
 	void	(*VGUI_SetupDrawing)( qboolean rect );
+
+	// ImGui functions
+	void	(*ImGui_DrawText)( int x, int y, int r, int g, int b, int a, const char *text );
+	int	(*ImGui_LoadFont)( const char *fontPath, float fontSize );
+	int	(*ImGui_GetTextWidth)( const char *text, float fontSize );
+	void	(*ImGui_SetScreenSize)( int width, int height );
+	int	(*ImGui_LoadFontHandle)( const char *fontPath, float fontSize );
+	void	(*ImGui_DrawTextFont)( int fontHandle, int x, int y, int r, int g, int b, int a, const char *text, float fontSize );
+	int	(*ImGui_GetTextWidthFont)( int fontHandle, const char *text, float fontSize );
+	int	(*ImGui_Begin)( const char *name, int flags );
+	void	(*ImGui_End)( void );
+	void	(*ImGui_Text)( const char *text );
+	void	(*ImGui_TextColored)( int r, int g, int b, int a, const char *text );
+	int	(*ImGui_Button)( const char *label, float width, float height );
+	int	(*ImGui_Checkbox)( const char *label, int *value );
+	int	(*ImGui_SliderFloat)( const char *label, float *value, float minValue, float maxValue, const char *format );
+	void	(*ImGui_SetNextWindowPos)( float x, float y, int cond );
+	void	(*ImGui_SetNextWindowSize)( float width, float height, int cond );
+	void	(*ImGui_SetCursorPos)( float x, float y );
+	void	(*ImGui_SameLine)( float offsetFromStartX, float spacing );
+	void	(*ImGui_Separator)( void );
+	void	(*ImGui_Spacing)( void );
+	int	(*ImGui_BeginChild)( const char *id, float width, float height, int border, int flags );
+	void	(*ImGui_EndChild)( void );
 } ref_interface_t;
 
 typedef int (*REFAPI)( int version, ref_interface_t *pFunctionTable, ref_api_t* engfuncs, ref_globals_t *pGlobals );

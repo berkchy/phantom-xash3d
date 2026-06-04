@@ -77,6 +77,16 @@ def main():
 	process = subprocess.Popen(waf_exec, env=env)
 	process.communicate()
 
+	# copy libxash_dedicated.so to jniLibs
+	abi = args.waflock.replace(".lock-waf_android_", "").replace("_build", "")
+	inst_path = os.path.join(args.top_dir, "android", "app", "src", "main", "jniLibs", abi)
+	xash_dedicated_src = os.path.join(args.out_dir, "xash3d-fwgs", "engine", "libxash_dedicated.so")
+	xash_dedicated_dst = os.path.join(inst_path, "libxash_dedicated.so")
+	if os.path.exists(xash_dedicated_src):
+		if not os.path.exists(inst_path):
+			os.makedirs(inst_path)
+		shutil.copyfile(xash_dedicated_src, xash_dedicated_dst)
+
 	return 0
 
 if __name__ == "__main__":

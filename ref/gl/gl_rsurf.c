@@ -754,7 +754,7 @@ static void R_BuildLightMap( const msurface_t *surf, byte *dest, int stride, qbo
 	}
 
 	// add all the dynamic lights
-	if( surf->dlightframe == tr.framecount && dynamic )
+	if( surf->dlightframe == tr.framecount && dynamic && r_fpsboost.value <= 0.0f )
 		R_AddDynamicLights( surf );
 
 	for( int t = 0; t < tmax; t++ )
@@ -781,7 +781,17 @@ static void R_BuildLightMap( const msurface_t *surf, byte *dest, int stride, qbo
 
 				dst[i] = LightToTexGamma( t ) >> 2;
 			}
-			dst[3] = 255;
+			if( gl_light_override.value > 0 )
+			{
+				dst[0] = (byte)((int)dst[0] * (int)gl_light_r.value / 255 );
+				dst[1] = (byte)((int)dst[1] * (int)gl_light_g.value / 255 );
+				dst[2] = (byte)((int)dst[2] * (int)gl_light_b.value / 255 );
+				dst[3] = (int)gl_light_a.value;
+			}
+			else
+			{
+				dst[3] = 255;
+			}
 		}
 	}
 }
@@ -1353,7 +1363,7 @@ static void R_RenderFullbrightForSurface( msurface_t *fa, texture_t *t )
 
 static void R_RenderDetailsForSurface( msurface_t *fa, texture_t *t )
 {
-	if( !r_detailtextures.value )
+	if( !r_detailtextures.value || r_fpsboost.value >= 2.0f )
 		return;
 
 	if( glState.isFogEnabled )
@@ -1379,6 +1389,8 @@ static void R_RenderDetailsForSurface( msurface_t *fa, texture_t *t )
 
 static void R_RenderDecalsForSurface( msurface_t *fa, int cull_type )
 {
+	if( r_fpsboost.value > 0.0f )
+		return;
 	if( RI.currententity->curstate.rendermode == kRenderNormal )
 	{
 		// batch decals to draw later
@@ -1396,7 +1408,7 @@ static qboolean R_CheckLightMap( msurface_t *fa )
 {
 	int maps;
 
-	if( unlikely( !r_dynamic->value ))
+	if( unlikely( !r_dynamic->value ) || r_fpsboost.value > 0.0f )
 		return false;
 
 	if( fa->dlightframe == tr.framecount )
@@ -1625,6 +1637,9 @@ R_DrawWaterSurfaces
 void R_DrawWaterSurfaces( void )
 {
 	if( !FBitSet( RI.rvp.flags, RF_DRAW_WORLD ) || FBitSet( RI.rvp.flags, RF_ONLY_CLIENTDRAW ))
+		return;
+
+	if( r_fpsboost.value >= 2.0f )
 		return;
 
 	// non-transparent water is already drawed
@@ -2530,7 +2545,7 @@ static texture_t *R_SetupVBOTexture( texture_t *tex, int number )
 	if( !tex )
 		tex = R_TextureAnim( WORLDMODEL->textures[number] );
 
-	if( r_detailtextures.value && tex->dt_texturenum && mtst.tmu_dt != -1 )
+	if( r_detailtextures.value && r_fpsboost.value < 2.0f && tex->dt_texturenum && mtst.tmu_dt != -1 )
 	{
 		mtst.details_enabled = true;
 		GL_Bind( mtst.tmu_dt, tex->dt_texturenum );
@@ -2670,7 +2685,7 @@ static void R_AdditionalPasses( vboarray_t *vbo, int indexlen, void *indexarray,
 		return;
 
 	// draw details in additional pass
-	if( r_detailtextures.value && r_vbo_detail.value == 1 && mtst.tmu_dt == -1 && tex->dt_texturenum )
+	if( r_detailtextures.value && r_fpsboost.value < 2.0f && r_vbo_detail.value == 1 && mtst.tmu_dt == -1 && tex->dt_texturenum )
 	{
 		gl_texture_t *glt = R_GetTexture( tex->gl_texturenum );
 

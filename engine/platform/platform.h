@@ -36,6 +36,8 @@ GNU General Public License for more details.
 double Platform_DoubleTime( void );
 void Platform_Sleep( int msec );
 void Platform_ShellExecute( const char *path, const char *parms );
+int Platform_ShowHtmlMotd( const char *html, const char *baseUrl, const char *serverName, int x, int y, int width, int height );
+void Platform_HideHtmlMotd( void );
 void Platform_MessageBox( const char *title, const char *message, qboolean parentMainWindow );
 void Platform_SetStatus( const char *status );
 qboolean Platform_DebuggerPresent( void );

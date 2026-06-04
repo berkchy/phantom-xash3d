@@ -71,6 +71,9 @@ static const char *GL_TargetToString( GLenum target )
 
 qboolean GL_TextureFilteringEnabled( const gl_texture_t *tex )
 {
+	if( r_fpsboost.value >= 2.0f )
+		return false;
+
 	if( FBitSet( tex->flags, TF_NEAREST ))
 		return false;
 

@@ -565,11 +565,15 @@ static void Con_AddCommandToList( const char *s, const char *value, const void *
 	con_autocomplete_t *list = (con_autocomplete_t*)_autocompleteList;
 	qboolean toggle = ptoggle != NULL && *(qboolean *)ptoggle;
 
+	if( !list || !s || !s[0] )
+		return;
 	if( *s == '@' ) return; // never show system cvars or cmds
 	if( list->matchCount >= CON_MAXCMDS ) return; // list is full
 
 	if( toggle )
 	{
+		if( !value || !value[0] )
+			return;
 		if( Q_strcmp( value, "0" ) && Q_strcmp( value, "1" ))
 			return; // exclude non-toggable cvars
 	}

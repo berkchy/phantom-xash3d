@@ -34,6 +34,7 @@ base_command_t *BaseCmd_Find( base_command_type_e type, const char *name );
 void BaseCmd_FindAll( const char *name, cmd_t **cmd, cmdalias_t **alias, convar_t **cvar );
 void BaseCmd_Insert( base_command_type_e type, base_command_t *basecmd, const char *name );
 void BaseCmd_Remove( base_command_type_e type, const char *name );
+void BaseCmd_Lookup( base_command_type_e type, int checkbit, void *buffer, void *ptr, setpair_t callback );
 void BaseCmd_Stats_f( void ); // to be registered later
 void BaseCmd_Test_f( void ); // to be registered later
 
