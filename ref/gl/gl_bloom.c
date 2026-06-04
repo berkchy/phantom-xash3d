@@ -74,28 +74,28 @@ static const char *s_composite_fsh =
  " gl_FragColor = vec4(s.rgb + b, 1.0);\n"
  "}\n";
 
-typedef GLuint (*pfnCreateShader_t)(GLenum);
-typedef void (*pfnShaderSource_t)(GLuint, GLsizei, const char**, const int*);
-typedef void (*pfnCompileShader_t)(GLuint);
-typedef void (*pfnGetShaderiv_t)(GLuint, GLenum, int*);
-typedef void (*pfnGetShaderInfoLog_t)(GLuint, GLsizei, GLsizei*, char*);
-typedef GLuint (*pfnCreateProgram_t)(void);
-typedef void (*pfnAttachShader_t)(GLuint, GLuint);
-typedef void (*pfnLinkProgram_t)(GLuint);
-typedef void (*pfnUseProgram_t)(GLuint);
-typedef void (*pfnDeleteShader_t)(GLuint);
-typedef void (*pfnDeleteProgram_t)(GLuint);
-typedef void (*pfnGetProgramiv_t)(GLuint, GLenum, int*);
-typedef void (*pfnGetProgramInfoLog_t)(GLuint, GLsizei, GLsizei*, char*);
-typedef int (*pfnGetUniformLocation_t)(GLuint, const char*);
-typedef void (*pfnUniform1f_t)(int, float);
-typedef void (*pfnUniform1i_t)(int, int);
-typedef void (*pfnUniform2f_t)(int, float, float);
-typedef int (*pfnGetAttribLocation_t)(GLuint, const char*);
-typedef void (*pfnVertexAttribPointer_t)(GLuint, int, GLenum, GLboolean, GLsizei, const void*);
-typedef void (*pfnEnableVertexAttribArray_t)(GLuint);
-typedef void (*pfnDisableVertexAttribArray_t)(GLuint);
-typedef void (*pfnDrawArrays_t)(GLenum, int, GLsizei);
+typedef GLuint (APIENTRY *pfnCreateShader_t)(GLenum);
+typedef void (APIENTRY *pfnShaderSource_t)(GLuint, GLsizei, const char **, const int *);
+typedef void (APIENTRY *pfnCompileShader_t)(GLuint);
+typedef void (APIENTRY *pfnGetShaderiv_t)(GLuint, GLenum, int *);
+typedef void (APIENTRY *pfnGetShaderInfoLog_t)(GLuint, GLsizei, GLsizei *, char *);
+typedef GLuint (APIENTRY *pfnCreateProgram_t)(void);
+typedef void (APIENTRY *pfnAttachShader_t)(GLuint, GLuint);
+typedef void (APIENTRY *pfnLinkProgram_t)(GLuint);
+typedef void (APIENTRY *pfnUseProgram_t)(GLuint);
+typedef void (APIENTRY *pfnDeleteShader_t)(GLuint);
+typedef void (APIENTRY *pfnDeleteProgram_t)(GLuint);
+typedef void (APIENTRY *pfnGetProgramiv_t)(GLuint, GLenum, int *);
+typedef void (APIENTRY *pfnGetProgramInfoLog_t)(GLuint, GLsizei, GLsizei *, char *);
+typedef int (APIENTRY *pfnGetUniformLocation_t)(GLuint, const char *);
+typedef void (APIENTRY *pfnUniform1f_t)(int, float);
+typedef void (APIENTRY *pfnUniform1i_t)(int, int);
+typedef void (APIENTRY *pfnUniform2f_t)(int, float, float);
+typedef int (APIENTRY *pfnGetAttribLocation_t)(GLuint, const char *);
+typedef void (APIENTRY *pfnVertexAttribPointer_t)(GLuint, int, GLenum, GLboolean, GLsizei, const void *);
+typedef void (APIENTRY *pfnEnableVertexAttribArray_t)(GLuint);
+typedef void (APIENTRY *pfnDisableVertexAttribArray_t)(GLuint);
+typedef void (APIENTRY *pfnDrawArrays_t)(GLenum, int, GLsizei);
 
 static struct {
  qboolean available;
@@ -192,11 +192,21 @@ static GLuint compile_shader( GLenum type, const char *source )
 {
  GLuint shader;
  int compiled = 0;
+ const char *strings[1];
+ const int lengths[1];
+
+ if( !source || !source[0] )
+ {
+  gEngfuncs.Con_Printf( S_ERROR "Bloom shader compile: null or empty source for type 0x%04x\n", (unsigned int)type );
+  return 0;
+ }
 
  shader = s_bloom.CreateShader( type );
  if( !shader ) return 0;
 
- s_bloom.ShaderSource( shader, 1, &source, NULL );
+ strings[0] = source;
+ lengths[0] = (int)Q_strlen( source );
+ s_bloom.ShaderSource( shader, 1, strings, lengths );
  s_bloom.CompileShader( shader );
  s_bloom.GetShaderiv( shader, BLOOM_COMPILE_STATUS, &compiled );
 
