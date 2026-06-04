@@ -1323,7 +1323,6 @@ qboolean R_Init( void )
 	R_AliasInit();
 	R_ClearDecals();
 	R_ClearScene();
-	GL_BloomInit();
 
 	return true;
 }
@@ -1342,7 +1341,6 @@ void R_Shutdown( void )
 
 	GL_RemoveCommands();
 	ImGui_Engine_Shutdown();
-	GL_BloomShutdown();
 	R_ShutdownImages();
 #if !XASH_GLES && !XASH_GL_STATIC
 	GL2_ShimShutdown();

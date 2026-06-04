@@ -1151,8 +1151,6 @@ void R_EndFrame( void )
 	// flush any remaining 2D bits
 	R_Set2DMode( false );
 
-	GL_BloomRender();
-
 	gEngfuncs.GL_SwapBuffers();
 }
 

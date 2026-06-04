@@ -760,11 +760,4 @@ extern convar_t	gl_light_a;
 //
 #include "crtlib.h"
 
-//
-// bloom
-//
-extern void GL_BloomInit( void );
-extern void GL_BloomShutdown( void );
-extern void GL_BloomRender( void );
-
 #endif // GL_LOCAL_H
