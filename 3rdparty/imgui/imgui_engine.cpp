@@ -273,7 +273,7 @@ static void EnsureInit(void)
         ImGui_Log("EnsureInit: fallback font name=\"%s\" size=%.0f\n",
             io.Fonts->Fonts[0]->GetDebugName(), io.Fonts->Fonts[0]->FontSize);
 
-    if (!ImGui_ImplOpenGL3_Init("#version 100"))
+    if (!ImGui_ImplOpenGL3_Init(NULL))
     {
         ImGui_Log("EnsureInit: OpenGL3 backend init FAILED\n");
         ImGui::DestroyContext();
