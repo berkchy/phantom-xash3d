@@ -113,7 +113,7 @@ def build(bld):
 		'ref_gles3compat': {
 			'enable':  bld.env.GLES3COMPAT,
 			'libs':    ['stdc++', 'GLESV2', 'GLESV3'],
-			'defines': ['XASH_GLES3COMPAT=1', 'XASH_GL_STATIC=1'],
+			'defines': ['XASH_GLES3COMPAT=1'],
 			'imgui':  'imgui_gles_objs',
 		},
 	}
