@@ -19,6 +19,10 @@ GNU General Public License for more details.
 #include "xash3d_mathlib.h"
 #include "ref_api.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 //
 // ref_context.c
 //
@@ -91,5 +95,9 @@ void R_UpdateSurfaceCachedLight( msurface_t *surf );
 // ref_image.c
 //
 byte *GL_ResampleTexture( const byte *source, int in_w, int in_h, int out_w, int out_h, qboolean isNormalMap );
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // REF_COMMON_H
