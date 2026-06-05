@@ -15,7 +15,7 @@ GNU General Public License for more details.
 
 #include "port.h"
 #include "build.h"
-#include "common/xash3d_types.h"
+#include "xash3d_types.h"
 
 #include <stdio.h>
 #include <string.h>
