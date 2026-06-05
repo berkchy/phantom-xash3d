@@ -20,13 +20,25 @@ GNU General Public License for more details.
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <ctype.h>
+#include <errno.h>
+#include <sys/stat.h>
+#if XASH_WIN32
+#include <sys/utime.h>
+#else
+#include <utime.h>
+#endif
 
 #if XASH_POSIX
 #include <dlfcn.h>
+#include <dirent.h>
+#include <unistd.h>
 #define XASHLIB OS_LIB_PREFIX "xash." OS_LIB_EXT
 #define FreeLibrary( x ) dlclose( x )
 #elif XASH_WIN32
 #include <shellapi.h> // CommandLineToArgvW
+#include <windows.h>
+#include <direct.h>
 #define XASHLIB L"xash.dll"
 #define SDL2LIB L"SDL2.dll"
 
@@ -55,6 +67,12 @@ static pfnShutdown Host_Shutdown = NULL;
 static int         szArgc;
 static char        **szArgv;
 static HINSTANCE   hEngine;
+
+struct launch_config_t
+{
+	const char *gameDir;
+	qboolean dedicated;
+};
 
 static void Launch_Error( const char *szFmt, ... )
 {
@@ -158,10 +176,373 @@ static void Sys_ChangeGame( const char *progname )
 	return;
 }
 
+static int Game_ArgCmp( const char *arg, const char *name )
+{
+	return arg && name ? strcmp( arg, name ) : 1;
+}
+
+static qboolean Game_HasArg( const char *name )
+{
+	for( int i = 1; i < szArgc; ++i )
+	{
+		if( !Game_ArgCmp( szArgv[i], name ))
+			return true;
+	}
+	return false;
+}
+
+static const char *Game_GetValueArg( const char *name )
+{
+	for( int i = 1; i < szArgc; ++i )
+	{
+		if( !Game_ArgCmp( szArgv[i], name ) && i + 1 < szArgc )
+			return szArgv[i + 1];
+
+		if( szArgv[i] && !strncmp( szArgv[i], name, strlen( name ) ) && szArgv[i][strlen( name )] == '=' )
+			return szArgv[i] + strlen( name ) + 1;
+	}
+
+	return NULL;
+}
+
+static qboolean Game_ShouldShowLauncher( void )
+{
+	if( szArgc <= 1 )
+		return true;
+
+	for( int i = 1; i < szArgc; ++i )
+	{
+		if( szArgv[i] && !strcmp( szArgv[i], "-launcher" ) )
+			return true;
+	}
+
+	return false;
+}
+
+static const char *Game_GetDefaultDir( void )
+{
+	const char *gamedir = Game_GetValueArg( "-game" );
+	if( gamedir && gamedir[0] )
+		return gamedir;
+	return XASH_GAMEDIR;
+}
+
+static qboolean Game_IsDedicatedRequested( void )
+{
+	return Game_HasArg( "-dedicated" );
+}
+
+static void Game_CopyFileIfMissing( const char *src, const char *dst )
+{
+	struct stat srcSt;
+	struct stat dstSt;
+
+	if( stat( src, &srcSt ) != 0 || !S_ISREG( srcSt.st_mode ))
+		return;
+
+	if( stat( dst, &dstSt ) == 0 && S_ISREG( dstSt.st_mode ) &&
+		dstSt.st_size == srcSt.st_size && dstSt.st_mtime == srcSt.st_mtime )
+		return;
+
+	FILE *in = fopen( src, "rb" );
+	if( !in )
+		return;
+
+	char dstPath[1024];
+	Q_strncpy( dstPath, dst, sizeof( dstPath ));
+
+#if XASH_WIN32
+	char *walk = dstPath;
+	if( isalpha( (unsigned char)walk[0] ) && walk[1] == ':' && ( walk[2] == '\\' || walk[2] == '/' ))
+		walk += 3;
+#else
+	char *walk = dstPath + 1;
+#endif
+
+	for( char *p = walk; *p; ++p )
+	{
+		if( *p == '/' || *p == '\\' )
+		{
+			char saved = *p;
+			*p = 0;
+#if XASH_WIN32
+			_mkdir( dstPath );
+#else
+			mkdir( dstPath, 0755 );
+#endif
+			*p = saved;
+		}
+	}
+
+	FILE *out = fopen( dst, "wb" );
+	if( !out )
+	{
+		fclose( in );
+		return;
+	}
+
+	char buf[8192];
+	size_t readCount;
+	while( ( readCount = fread( buf, 1, sizeof( buf ), in )) > 0 )
+		fwrite( buf, 1, readCount, out );
+
+	fclose( out );
+	fclose( in );
+
+#if XASH_WIN32
+	struct _utimbuf times;
+	times.actime = srcSt.st_atime;
+	times.modtime = srcSt.st_mtime;
+	_utime( dst, &times );
+#else
+	struct utimbuf times;
+	times.actime = srcSt.st_atime;
+	times.modtime = srcSt.st_mtime;
+	utime( dst, &times );
+#endif
+}
+
+static void Game_SyncDir( const char *srcDir, const char *dstDir )
+{
+	struct stat st;
+	if( stat( srcDir, &st ) != 0 || !S_ISDIR( st.st_mode ))
+		return;
+
+#if XASH_WIN32
+	char pattern[1024];
+	Q_snprintf( pattern, sizeof( pattern ), "%s\\*.*", srcDir );
+	WIN32_FIND_DATAA data;
+	HANDLE handle = FindFirstFileA( pattern, &data );
+	if( handle == INVALID_HANDLE_VALUE )
+		return;
+
+	do
+	{
+		if( !strcmp( data.cFileName, "." ) || !strcmp( data.cFileName, ".." ))
+			continue;
+		if( data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY )
+			continue;
+
+		char src[1024];
+		char dst[1024];
+		Q_snprintf( src, sizeof( src ), "%s\\%s", srcDir, data.cFileName );
+		Q_snprintf( dst, sizeof( dst ), "%s\\%s", dstDir, data.cFileName );
+		Game_CopyFileIfMissing( src, dst );
+	} while( FindNextFileA( handle, &data ) );
+
+	FindClose( handle );
+#else
+	DIR *dir = opendir( srcDir );
+	if( !dir )
+		return;
+
+	struct dirent *entry;
+	while( ( entry = readdir( dir )) != NULL )
+	{
+		if( !strcmp( entry->d_name, "." ) || !strcmp( entry->d_name, ".." ))
+			continue;
+
+		char src[1024];
+		char dst[1024];
+		Q_snprintf( src, sizeof( src ), "%s/%s", srcDir, entry->d_name );
+		Q_snprintf( dst, sizeof( dst ), "%s/%s", dstDir, entry->d_name );
+		Game_CopyFileIfMissing( src, dst );
+	}
+
+	closedir( dir );
+#endif
+}
+
+static void Game_SyncAssets( const char *gameDir )
+{
+	char exePath[1024] = {0};
+	char baseDir[1024] = {0};
+	char srcRoot[1024] = {0};
+	char dstRoot[1024] = {0};
+	const char sep =
+#if XASH_WIN32
+		'\\';
+#else
+		'/';
+#endif
+
+#if XASH_WIN32
+	if( !GetModuleFileNameA( NULL, exePath, sizeof( exePath ) - 1 ))
+		return;
+	char *slash = strrchr( exePath, '\\' );
+	if( slash )
+		*slash = 0;
+#else
+	ssize_t len = readlink( "/proc/self/exe", exePath, sizeof( exePath ) - 1 );
+	if( len <= 0 )
+		return;
+	exePath[len] = 0;
+	char *slash = strrchr( exePath, '/' );
+	if( slash )
+		*slash = 0;
+#endif
+
+	const char *envBase = getenv( "XASH3D_BASEDIR" );
+	if( envBase && envBase[0] )
+		Q_strncpy( baseDir, envBase, sizeof( baseDir ));
+	else
+	{
+#if XASH_WIN32
+		if( !GetCurrentDirectoryA( sizeof( baseDir ) - 1, baseDir ))
+			return;
+#else
+		if( !getcwd( baseDir, sizeof( baseDir ) - 1 ))
+			return;
+#endif
+	}
+
+	Q_snprintf( srcRoot, sizeof( srcRoot ), "%s%cassets", exePath, sep );
+	Q_snprintf( dstRoot, sizeof( dstRoot ), "%s%c%s", baseDir, sep, gameDir ? gameDir : XASH_GAMEDIR );
+
+	char srcSprites[1024];
+	char dstSprites[1024];
+	char srcSounds[1024];
+	char dstSounds[1024];
+	Q_snprintf( srcSprites, sizeof( srcSprites ), "%s%csprites", srcRoot, sep );
+	Q_snprintf( dstSprites, sizeof( dstSprites ), "%s%csprites", dstRoot, sep );
+	Q_snprintf( srcSounds, sizeof( srcSounds ), "%s%sound%cvox", srcRoot, sep == '\\' ? "\\" : "/", sep );
+	Q_snprintf( dstSounds, sizeof( dstSounds ), "%s%sound%cvox", dstRoot, sep == '\\' ? "\\" : "/", sep );
+
+#if XASH_WIN32
+	_mkdir( dstRoot );
+	_mkdir( dstSprites );
+	_mkdir( dstRoot );
+	char soundDir[1024];
+	Q_snprintf( soundDir, sizeof( soundDir ), "%s%csound", dstRoot, sep );
+	_mkdir( soundDir );
+	_mkdir( dstSounds );
+#else
+	mkdir( dstRoot, 0755 );
+	char soundDir[1024];
+	Q_snprintf( soundDir, sizeof( soundDir ), "%s/sound", dstRoot );
+	mkdir( soundDir, 0755 );
+	mkdir( dstSprites, 0755 );
+	mkdir( dstSounds, 0755 );
+#endif
+
+	Game_SyncDir( srcSprites, dstSprites );
+	Game_SyncDir( srcSounds, dstSounds );
+}
+
+static void Game_PushArg( char ***argv, int *argc, const char *value )
+{
+	*argv = (char**)realloc( *argv, sizeof( char* ) * ( *argc + 2 ));
+	(*argv)[*argc] = strdup( value );
+	(*argc)++;
+	(*argv)[*argc] = NULL;
+}
+
+static int Game_RunEngine( const launch_config_t &cfg )
+{
+	char **launchArgv = szArgv;
+	int launchArgc = szArgc;
+	qboolean ownsArgs = false;
+	qboolean needCopy = cfg.dedicated && !Game_HasArg( "-dedicated" );
+	if( Game_HasArg( "-launcher" ))
+		needCopy = true;
+
+	if( needCopy )
+	{
+		launchArgv = NULL;
+		launchArgc = 0;
+		for( int i = 0; i < szArgc; ++i )
+		{
+			if( szArgv[i] && !strcmp( szArgv[i], "-launcher" ) )
+				continue;
+			Game_PushArg( &launchArgv, &launchArgc, szArgv[i] );
+		}
+		if( cfg.dedicated && !Game_HasArg( "-dedicated" ))
+			Game_PushArg( &launchArgv, &launchArgc, "-dedicated" );
+		ownsArgs = true;
+	}
+
+	Game_SyncAssets( cfg.gameDir );
+	Sys_LoadEngine();
+	int ret = Host_Main( launchArgc, launchArgv, cfg.gameDir, 0, XASH_DISABLE_MENU_CHANGEGAME ? NULL : Sys_ChangeGame );
+	Sys_UnloadEngine();
+
+	if( ownsArgs )
+	{
+		for( int i = 0; i < launchArgc; ++i )
+			free( launchArgv[i] );
+		free( launchArgv );
+	}
+
+	return ret;
+}
+
+static launch_config_t Game_SelectLaunchConfig( void )
+{
+	launch_config_t cfg = { XASH_GAMEDIR, false };
+
+#if XASH_WIN32
+	int gameChoice = MessageBoxA( NULL,
+		"Choose game:\n\nYes = Counter-Strike\nNo = Half-Life\nCancel = Exit",
+		"Xash3D Launcher", MB_YESNOCANCEL | MB_ICONQUESTION | MB_TOPMOST );
+
+	if( gameChoice == IDCANCEL )
+		exit( 0 );
+
+	cfg.gameDir = ( gameChoice == IDYES ) ? "cstrike" : "valve";
+
+	int modeChoice = MessageBoxA( NULL,
+		"Choose mode:\n\nYes = Client\nNo = Dedicated Server\nCancel = Exit",
+		"Xash3D Launcher", MB_YESNOCANCEL | MB_ICONQUESTION | MB_TOPMOST );
+
+	if( modeChoice == IDCANCEL )
+		exit( 0 );
+
+	cfg.dedicated = ( modeChoice == IDNO );
+#else
+	if( !isatty( fileno( stdin ) ))
+	{
+		fprintf( stderr, "Xash launcher: no interactive terminal, defaulting to Counter-Strike client.\n" );
+		return cfg;
+	}
+
+	printf( "\nXash3D Launcher\n" );
+	printf( "1) Counter-Strike client\n" );
+	printf( "2) Half-Life client\n" );
+	printf( "3) Counter-Strike dedicated server\n" );
+	printf( "4) Half-Life dedicated server\n" );
+	printf( "Selection: " );
+	fflush( stdout );
+
+	char line[32];
+	if( !fgets( line, sizeof( line ), stdin ))
+		return cfg;
+
+	int choice = atoi( line );
+	switch( choice )
+	{
+		case 2:
+			cfg.gameDir = "valve";
+			break;
+		case 3:
+			cfg.gameDir = "cstrike";
+			cfg.dedicated = true;
+			break;
+		case 4:
+			cfg.gameDir = "valve";
+			cfg.dedicated = true;
+			break;
+		case 1:
+		default:
+			cfg.gameDir = "cstrike";
+			break;
+	}
+#endif
+
+	return cfg;
+}
+
 static int Sys_Start( void )
 {
-	int ret;
-
 #if XASH_SAILFISH
 	const char *home = getenv( "HOME" );
 	char buf[1024];
@@ -171,11 +552,14 @@ static int Sys_Start( void )
 	setenv( "XASH3D_RODIR", "/usr/share/harbour-xash3d-fwgs/rodir", true );
 #endif // XASH_SAILFISH
 
-	Sys_LoadEngine();
-	ret = Host_Main( szArgc, szArgv, XASH_GAMEDIR, 0, XASH_DISABLE_MENU_CHANGEGAME ? NULL : Sys_ChangeGame );
-	Sys_UnloadEngine();
+	if( Game_ShouldShowLauncher( ))
+	{
+		launch_config_t cfg = Game_SelectLaunchConfig( );
+		return Game_RunEngine( cfg );
+	}
 
-	return ret;
+	launch_config_t cfg = { Game_GetDefaultDir(), Game_IsDedicatedRequested() };
+	return Game_RunEngine( cfg );
 }
 
 #if !XASH_WIN32
