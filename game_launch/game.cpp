@@ -15,6 +15,7 @@ GNU General Public License for more details.
 
 #include "port.h"
 #include "build.h"
+#include "common/xash3d_types.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -25,6 +26,12 @@ GNU General Public License for more details.
 #include <sys/stat.h>
 #if XASH_WIN32
 #include <sys/utime.h>
+#ifndef S_ISREG
+#define S_ISREG( m ) (((m) & _S_IFMT ) == _S_IFREG )
+#endif
+#ifndef S_ISDIR
+#define S_ISDIR( m ) (((m) & _S_IFMT ) == _S_IFDIR )
+#endif
 #else
 #include <utime.h>
 #endif
@@ -67,6 +74,37 @@ static pfnShutdown Host_Shutdown = NULL;
 static int         szArgc;
 static char        **szArgv;
 static HINSTANCE   hEngine;
+
+static inline size_t Game_Q_strncpy( char *dst, const char *src, size_t size )
+{
+	size_t len;
+
+	if( !dst || !src || !size )
+		return 0;
+
+	len = strlen( src );
+	if( len + 1 > size )
+	{
+		memcpy( dst, src, size - 1 );
+		dst[size - 1] = 0;
+	}
+	else
+		memcpy( dst, src, len + 1 );
+
+	return len;
+}
+
+static inline int Game_Q_snprintf( char *dst, size_t size, const char *fmt, ... )
+{
+	va_list args;
+	int ret;
+
+	va_start( args, fmt );
+	ret = vsnprintf( dst, size, fmt, args );
+	va_end( args );
+
+	return ret;
+}
 
 struct launch_config_t
 {
@@ -249,7 +287,7 @@ static void Game_CopyFileIfMissing( const char *src, const char *dst )
 		return;
 
 	char dstPath[1024];
-	Q_strncpy( dstPath, dst, sizeof( dstPath ));
+	Game_Q_strncpy( dstPath, dst, sizeof( dstPath ));
 
 #if XASH_WIN32
 	char *walk = dstPath;
@@ -310,7 +348,7 @@ static void Game_SyncDir( const char *srcDir, const char *dstDir )
 
 #if XASH_WIN32
 	char pattern[1024];
-	Q_snprintf( pattern, sizeof( pattern ), "%s\\*.*", srcDir );
+	Game_Q_snprintf( pattern, sizeof( pattern ), "%s\\*.*", srcDir );
 	WIN32_FIND_DATAA data;
 	HANDLE handle = FindFirstFileA( pattern, &data );
 	if( handle == INVALID_HANDLE_VALUE )
@@ -325,8 +363,8 @@ static void Game_SyncDir( const char *srcDir, const char *dstDir )
 
 		char src[1024];
 		char dst[1024];
-		Q_snprintf( src, sizeof( src ), "%s\\%s", srcDir, data.cFileName );
-		Q_snprintf( dst, sizeof( dst ), "%s\\%s", dstDir, data.cFileName );
+		Game_Q_snprintf( src, sizeof( src ), "%s\\%s", srcDir, data.cFileName );
+		Game_Q_snprintf( dst, sizeof( dst ), "%s\\%s", dstDir, data.cFileName );
 		Game_CopyFileIfMissing( src, dst );
 	} while( FindNextFileA( handle, &data ) );
 
@@ -344,8 +382,8 @@ static void Game_SyncDir( const char *srcDir, const char *dstDir )
 
 		char src[1024];
 		char dst[1024];
-		Q_snprintf( src, sizeof( src ), "%s/%s", srcDir, entry->d_name );
-		Q_snprintf( dst, sizeof( dst ), "%s/%s", dstDir, entry->d_name );
+		Game_Q_snprintf( src, sizeof( src ), "%s/%s", srcDir, entry->d_name );
+		Game_Q_snprintf( dst, sizeof( dst ), "%s/%s", dstDir, entry->d_name );
 		Game_CopyFileIfMissing( src, dst );
 	}
 
@@ -384,7 +422,7 @@ static void Game_SyncAssets( const char *gameDir )
 
 	const char *envBase = getenv( "XASH3D_BASEDIR" );
 	if( envBase && envBase[0] )
-		Q_strncpy( baseDir, envBase, sizeof( baseDir ));
+		Game_Q_strncpy( baseDir, envBase, sizeof( baseDir ));
 	else
 	{
 #if XASH_WIN32
@@ -396,30 +434,30 @@ static void Game_SyncAssets( const char *gameDir )
 #endif
 	}
 
-	Q_snprintf( srcRoot, sizeof( srcRoot ), "%s%cassets", exePath, sep );
-	Q_snprintf( dstRoot, sizeof( dstRoot ), "%s%c%s", baseDir, sep, gameDir ? gameDir : XASH_GAMEDIR );
+	Game_Q_snprintf( srcRoot, sizeof( srcRoot ), "%s%cassets", exePath, sep );
+	Game_Q_snprintf( dstRoot, sizeof( dstRoot ), "%s%c%s", baseDir, sep, gameDir ? gameDir : XASH_GAMEDIR );
 
 	char srcSprites[1024];
 	char dstSprites[1024];
 	char srcSounds[1024];
 	char dstSounds[1024];
-	Q_snprintf( srcSprites, sizeof( srcSprites ), "%s%csprites", srcRoot, sep );
-	Q_snprintf( dstSprites, sizeof( dstSprites ), "%s%csprites", dstRoot, sep );
-	Q_snprintf( srcSounds, sizeof( srcSounds ), "%s%sound%cvox", srcRoot, sep == '\\' ? "\\" : "/", sep );
-	Q_snprintf( dstSounds, sizeof( dstSounds ), "%s%sound%cvox", dstRoot, sep == '\\' ? "\\" : "/", sep );
+	Game_Q_snprintf( srcSprites, sizeof( srcSprites ), "%s%csprites", srcRoot, sep );
+	Game_Q_snprintf( dstSprites, sizeof( dstSprites ), "%s%csprites", dstRoot, sep );
+	Game_Q_snprintf( srcSounds, sizeof( srcSounds ), "%s%sound%cvox", srcRoot, sep == '\\' ? "\\" : "/", sep );
+	Game_Q_snprintf( dstSounds, sizeof( dstSounds ), "%s%sound%cvox", dstRoot, sep == '\\' ? "\\" : "/", sep );
 
 #if XASH_WIN32
 	_mkdir( dstRoot );
 	_mkdir( dstSprites );
 	_mkdir( dstRoot );
 	char soundDir[1024];
-	Q_snprintf( soundDir, sizeof( soundDir ), "%s%csound", dstRoot, sep );
+	Game_Q_snprintf( soundDir, sizeof( soundDir ), "%s%csound", dstRoot, sep );
 	_mkdir( soundDir );
 	_mkdir( dstSounds );
 #else
 	mkdir( dstRoot, 0755 );
 	char soundDir[1024];
-	Q_snprintf( soundDir, sizeof( soundDir ), "%s/sound", dstRoot );
+	Game_Q_snprintf( soundDir, sizeof( soundDir ), "%s/sound", dstRoot );
 	mkdir( soundDir, 0755 );
 	mkdir( dstSprites, 0755 );
 	mkdir( dstSounds, 0755 );
