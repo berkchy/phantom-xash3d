@@ -313,9 +313,10 @@ typedef struct cl_enginefuncs_s
 	void		(*pfnShellExecute)( const char *path, const char *parms );
 	int		(*pfnShowHtmlMotd)( const char *html, const char *baseUrl, const char *serverName, int x, int y, int width, int height );
 	void		(*pfnHideHtmlMotd)( void );
+	void		(*pfnSPR_DrawAdditiveScale)( int frame, int x, int y, const wrect_t *prc, float scale );
 } cl_enginefunc_t;
 
-#define CLDLL_INTERFACE_VERSION	7
+#define CLDLL_INTERFACE_VERSION	8
 
 #ifdef __cplusplus
 }

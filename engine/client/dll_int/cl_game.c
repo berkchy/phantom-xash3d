@@ -1524,11 +1524,67 @@ static void GAME_EXPORT pfnSPR_DrawAdditive( int frame, int x, int y, const wrec
 
 /*
 =========
+pfnSPR_DrawAdditiveScale
+
+like SPR_DrawAdditive but with custom scale factor
+=========
+*/
+static void GAME_EXPORT pfnSPR_DrawAdditiveScale( int frame, int x, int y, const wrect_t *prc, float scale )
+{
+	float s1, s2, t1, t2;
+	int w, h, texnum;
+
+	R_GetSpriteParms( &w, &h, NULL, frame, clgame.ds.pSprite );
+	texnum = R_GetSpriteTexture( clgame.ds.pSprite, frame );
+
+	float width = w * scale;
+	float height = h * scale;
+	float fx = x, fy = y;
+
+	if( prc )
+	{
+		wrect_t rc = *prc;
+
+		// clamp against ORIGINAL sprite size (not scaled)
+		if( rc.left <= 0 || rc.left >= w ) rc.left = 0;
+		if( rc.top <= 0 || rc.top >= h ) rc.top = 0;
+		if( rc.right <= 0 || rc.right > w ) rc.right = w;
+		if( rc.bottom <= 0 || rc.bottom > h ) rc.bottom = h;
+
+		s1 = rc.left;
+		t1 = rc.top;
+		s2 = rc.right;
+		t2 = rc.bottom;
+
+		SPR_AdjustTexCoords( texnum, w, h, &s1, &t1, &s2, &t2 );
+
+		// apply scale AFTER rect processing
+		width = (rc.right - rc.left) * scale;
+		height = (rc.bottom - rc.top) * scale;
+	}
+	else
+	{
+		s1 = t1 = 0.0f;
+		s2 = t2 = 1.0f;
+	}
+
+	if( !CL_Scissor( &clgame.ds.scissor, &fx, &fy, &width, &height, &s1, &t1, &s2, &t2 ))
+		return;
+
+	SPR_AdjustSize( &fx, &fy, &width, &height );
+
+	ref.dllFuncs.GL_SetRenderMode( kRenderTransAdd );
+	ref.dllFuncs.Color4ub( clgame.ds.spriteColor[0], clgame.ds.spriteColor[1], clgame.ds.spriteColor[2], clgame.ds.spriteColor[3] );
+	ref.dllFuncs.R_DrawStretchPic( fx, fy, width, height, s1, t1, s2, t2, texnum );
+	ref.dllFuncs.GL_SetRenderMode( kRenderNormal );
+}
+
+/*
+=========
 SPR_GetList
 
 for parsing half-life scripts - hud.txt etc
-=========
-*/
+=========*/
 static client_sprite_t *SPR_GetList( char *psz, int *piCount )
 {
 	cached_spritelist_t	*pEntry = &clgame.sprlist[0];
@@ -2949,10 +3005,30 @@ pfnSPR_DrawGeneric
 */
 static void GAME_EXPORT pfnSPR_DrawGeneric( int frame, int x, int y, const wrect_t *prc, int blendsrc, int blenddst, int width, int height )
 {
-#if 0 // REFTODO:
-	pglEnable( GL_BLEND );
-	pglBlendFunc( blendsrc, blenddst ); // g-cont. are params is valid?
-#endif
+	// Keep the legacy draw contract: honor common render modes while
+	// still allowing custom width/height for crisp scaled HUD sprites.
+	if( blendsrc == kRenderTransAdd )
+	{
+		ref.dllFuncs.GL_SetRenderMode( kRenderTransAdd );
+		SPR_DrawGeneric( frame, x, y, width, height, prc );
+		ref.dllFuncs.GL_SetRenderMode( kRenderNormal );
+		return;
+	}
+	else if( blendsrc == kRenderTransAlpha )
+	{
+		ref.dllFuncs.GL_SetRenderMode( kRenderTransAlpha );
+		SPR_DrawGeneric( frame, x, y, width, height, prc );
+		ref.dllFuncs.GL_SetRenderMode( kRenderNormal );
+		return;
+	}
+	else if( blendsrc == kRenderTransColor )
+	{
+		ref.dllFuncs.GL_SetRenderMode( kRenderTransColor );
+		SPR_DrawGeneric( frame, x, y, width, height, prc );
+		ref.dllFuncs.GL_SetRenderMode( kRenderNormal );
+		return;
+	}
+
 	SPR_DrawGeneric( frame, x, y, width, height, prc );
 }
 
@@ -3896,7 +3972,8 @@ static cl_enginefunc_t gEngfuncs =
 	pfnImGui_GetTextWidth,
 	pfnShellExecute,
 	pfnShowHtmlMotd,
-	pfnHideHtmlMotd
+	pfnHideHtmlMotd,
+	pfnSPR_DrawAdditiveScale
 };
 
 void CL_UnloadProgs( void )
