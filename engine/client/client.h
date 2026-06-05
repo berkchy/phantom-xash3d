@@ -403,9 +403,11 @@ typedef struct
 	scissor_state_t scissor;
 
 	int		gl_texturenum;	// this is a real texnum
+	const model_t	*pSprite;			// pointer to current SpriteTexture
 
 	// holds text color
 	rgba_t		textColor;
+	rgba_t		spriteColor;
 } gameui_draw_t;
 
 typedef struct

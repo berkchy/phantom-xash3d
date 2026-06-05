@@ -478,6 +478,102 @@ static void PIC_DrawGeneric( float x, float y, float width, float height, const 
 	ref.dllFuncs.Color4ub( 255, 255, 255, 255 );
 }
 
+static void SPR_AdjustTexCoords( int texnum, float width, float height, float *s1, float *t1, float *s2, float *t2 )
+{
+	const qboolean filtering = REF_GET_PARM( PARM_TEX_FILTERING, texnum );
+	const int xremainder = refState.width % gameui.globals->scrWidth;
+	const int yremainder = refState.height % gameui.globals->scrHeight;
+
+	if(( filtering || xremainder ) && refState.width != gameui.globals->scrWidth )
+	{
+		*s1 += 0.5f;
+		*s2 -= 0.5f;
+	}
+
+	if(( filtering || yremainder ) && refState.height != gameui.globals->scrHeight )
+	{
+		*t1 += 0.5f;
+		*t2 -= 0.5f;
+	}
+
+	*s1 /= width;
+	*t1 /= height;
+	*s2 /= width;
+	*t2 /= height;
+}
+
+static const model_t *UI_GetSpritePointer( HIMAGE hPic )
+{
+	int index = hPic - 1;
+
+	if( index < 0 || index >= MAX_CLIENT_SPRITES )
+		return NULL;
+
+	model_t *mod = &clgame.sprites[index];
+
+	if( mod->needload == NL_NEEDS_LOADED )
+	{
+		if( pfnSPR_LoadExt( mod->name, mod->numtexinfo ))
+			return mod;
+	}
+
+	if( mod->mempool )
+	{
+		mod->needload = NL_PRESENT;
+		return mod;
+	}
+
+	return NULL;
+}
+
+static void SPR_DrawGeneric( int frame, float x, float y, float width, float height, const wrect_t *prc )
+{
+	const model_t *sprite = gameui.ds.pSprite;
+	int w = 0, h = 0;
+	int texnum = 0;
+	float s1 = 0.0f, s2 = 1.0f, t1 = 0.0f, t2 = 1.0f;
+
+	if( !sprite )
+		return;
+
+	R_GetSpriteParms( &w, &h, NULL, frame, sprite );
+	if( w <= 0 || h <= 0 )
+		return;
+
+	texnum = R_GetSpriteTexture( sprite, frame );
+	if( !texnum )
+		return;
+
+	if( prc )
+	{
+		s1 = prc->left;
+		t1 = prc->top;
+		s2 = prc->right;
+		t2 = prc->bottom;
+
+		if( width == -1 && height == -1 )
+		{
+			width = prc->right - prc->left;
+			height = prc->bottom - prc->top;
+		}
+
+		SPR_AdjustTexCoords( texnum, w, h, &s1, &t1, &s2, &t2 );
+	}
+	else if( width == -1 && height == -1 )
+	{
+		width = w;
+		height = h;
+	}
+
+	if( !CL_Scissor( &gameui.ds.scissor, &x, &y, &width, &height, &s1, &t1, &s2, &t2 ))
+		return;
+
+	SPR_AdjustSize( &x, &y, &width, &height );
+
+	ref.dllFuncs.R_DrawStretchPic( x, y, width, height, s1, t1, s2, t2, texnum );
+	ref.dllFuncs.Color4ub( 255, 255, 255, 255 );
+}
+
 /*
 ===============================================================================
 	MainUI Builtin Functions
@@ -630,6 +726,190 @@ pfnPIC_DisableScissor
 static void GAME_EXPORT pfnPIC_DisableScissor( void )
 {
 	CL_DisableScissor( &gameui.ds.scissor );
+}
+
+/*
+=========
+pfnSPR_Load
+
+=========
+*/
+static HIMAGE GAME_EXPORT pfnSPR_Load( const char *szPicName )
+{
+	return pfnSPR_LoadExt( szPicName, TF_NEAREST | TF_NOMIPMAP );
+}
+
+/*
+=========
+pfnSPR_Frames
+
+=========
+*/
+static int GAME_EXPORT pfnSPR_Frames( HIMAGE hPic )
+{
+	int	numFrames = 0;
+
+	R_GetSpriteParms( NULL, NULL, &numFrames, 0, UI_GetSpritePointer( hPic ));
+
+	return numFrames;
+}
+
+/*
+=========
+pfnSPR_Height
+
+=========
+*/
+static int GAME_EXPORT pfnSPR_Height( HIMAGE hPic, int frame )
+{
+	int	sprHeight = 0;
+
+	R_GetSpriteParms( NULL, &sprHeight, NULL, frame, UI_GetSpritePointer( hPic ));
+
+	return sprHeight;
+}
+
+/*
+=========
+pfnSPR_Width
+
+=========
+*/
+static int GAME_EXPORT pfnSPR_Width( HIMAGE hPic, int frame )
+{
+	int	sprWidth = 0;
+
+	R_GetSpriteParms( &sprWidth, NULL, NULL, frame, UI_GetSpritePointer( hPic ));
+
+	return sprWidth;
+}
+
+/*
+=========
+pfnSPR_Set
+
+=========
+*/
+static void GAME_EXPORT pfnSPR_Set( HIMAGE hPic, int r, int g, int b, int a )
+{
+	const model_t *sprite = UI_GetSpritePointer( hPic );
+
+	if( !sprite )
+		return;
+
+	gameui.ds.pSprite = sprite;
+	gameui.ds.spriteColor[0] = bound( 0, r, 255 );
+	gameui.ds.spriteColor[1] = bound( 0, g, 255 );
+	gameui.ds.spriteColor[2] = bound( 0, b, 255 );
+	gameui.ds.spriteColor[3] = bound( 0, a, 255 );
+}
+
+/*
+=========
+pfnSPR_Draw
+
+=========
+*/
+static void GAME_EXPORT pfnSPR_Draw( int frame, int x, int y, const wrect_t *prc )
+{
+	ref.dllFuncs.GL_SetRenderMode( kRenderTransAlpha );
+	SPR_DrawGeneric( frame, x, y, -1, -1, prc );
+}
+
+/*
+=========
+pfnSPR_DrawHoles
+
+=========
+*/
+static void GAME_EXPORT pfnSPR_DrawHoles( int frame, int x, int y, const wrect_t *prc )
+{
+	ref.dllFuncs.GL_SetRenderMode( kRenderTransColor );
+	SPR_DrawGeneric( frame, x, y, -1, -1, prc );
+	ref.dllFuncs.GL_SetRenderMode( kRenderNormal );
+}
+
+/*
+=========
+pfnSPR_DrawTrans
+
+=========
+*/
+static void GAME_EXPORT pfnSPR_DrawTrans( int frame, int x, int y, const wrect_t *prc )
+{
+	ref.dllFuncs.GL_SetRenderMode( kRenderTransTexture );
+	SPR_DrawGeneric( frame, x, y, -1, -1, prc );
+}
+
+/*
+=========
+pfnSPR_DrawAdditive
+
+=========
+*/
+static void GAME_EXPORT pfnSPR_DrawAdditive( int frame, int x, int y, const wrect_t *prc )
+{
+	ref.dllFuncs.GL_SetRenderMode( kRenderTransAdd );
+	SPR_DrawGeneric( frame, x, y, -1, -1, prc );
+	ref.dllFuncs.GL_SetRenderMode( kRenderNormal );
+}
+
+/*
+=========
+pfnSPR_DrawAdditiveScale
+
+=========
+*/
+static void GAME_EXPORT pfnSPR_DrawAdditiveScale( int frame, int x, int y, const wrect_t *prc, float scale )
+{
+	const model_t *sprite = gameui.ds.pSprite;
+	int w = 0, h = 0, texnum = 0;
+	float s1 = 0.0f, s2 = 1.0f, t1 = 0.0f, t2 = 1.0f;
+	float width, height, fx = x, fy = y;
+
+	if( !sprite )
+		return;
+
+	R_GetSpriteParms( &w, &h, NULL, frame, sprite );
+	if( w <= 0 || h <= 0 )
+		return;
+
+	texnum = R_GetSpriteTexture( sprite, frame );
+	if( !texnum )
+		return;
+
+	width = w * scale;
+	height = h * scale;
+
+	if( prc )
+	{
+		wrect_t rc = *prc;
+
+		if( rc.left <= 0 || rc.left >= w ) rc.left = 0;
+		if( rc.top <= 0 || rc.top >= h ) rc.top = 0;
+		if( rc.right <= 0 || rc.right > w ) rc.right = w;
+		if( rc.bottom <= 0 || rc.bottom > h ) rc.bottom = h;
+
+		s1 = rc.left;
+		t1 = rc.top;
+		s2 = rc.right;
+		t2 = rc.bottom;
+
+		SPR_AdjustTexCoords( texnum, w, h, &s1, &t1, &s2, &t2 );
+		width = ( rc.right - rc.left ) * scale;
+		height = ( rc.bottom - rc.top ) * scale;
+	}
+
+	if( !CL_Scissor( &gameui.ds.scissor, &fx, &fy, &width, &height, &s1, &t1, &s2, &t2 ))
+		return;
+
+	SPR_AdjustSize( &fx, &fy, &width, &height );
+
+	ref.dllFuncs.GL_SetRenderMode( kRenderTransAdd );
+	ref.dllFuncs.Color4ub( gameui.ds.spriteColor[0], gameui.ds.spriteColor[1], gameui.ds.spriteColor[2], gameui.ds.spriteColor[3] );
+	ref.dllFuncs.R_DrawStretchPic( fx, fy, width, height, s1, t1, s2, t2, texnum );
+	ref.dllFuncs.GL_SetRenderMode( kRenderNormal );
+	ref.dllFuncs.Color4ub( 255, 255, 255, 255 );
 }
 
 /*
@@ -1159,6 +1439,16 @@ static const ui_enginefuncs_t gEngfuncs =
 	pfnPIC_DrawAdditive,
 	pfnPIC_EnableScissor,
 	pfnPIC_DisableScissor,
+	pfnSPR_Load,
+	pfnSPR_Frames,
+	pfnSPR_Width,
+	pfnSPR_Height,
+	pfnSPR_Set,
+	pfnSPR_Draw,
+	pfnSPR_DrawHoles,
+	pfnSPR_DrawTrans,
+	pfnSPR_DrawAdditive,
+	pfnSPR_DrawAdditiveScale,
 	pfnFillRGBA,
 	pfnCvar_RegisterGameUIVariable,
 	Cvar_VariableValue,
