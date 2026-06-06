@@ -562,21 +562,45 @@ static void Game_SyncAssets( const char *gameDir )
 	char dstSounds[1024];
 	char srcFonts[1024];
 	char dstFonts[1024];
+	char srcShell[1024];
+	char dstShell[1024];
+	char srcFontsWad[1024];
+	char dstFontsWad[1024];
+	char srcGfxWad[1024];
+	char dstGfxWad[1024];
+	char srcGameUi[1024];
+	char dstGameUi[1024];
+	char dstResource[1024];
 	Game_Q_snprintf( srcSprites, sizeof( srcSprites ), "%s%csprites", srcRoot, sep );
 	Game_Q_snprintf( dstSprites, sizeof( dstSprites ), "%s%csprites", dstRoot, sep );
 	Game_Q_snprintf( srcSounds, sizeof( srcSounds ), "%s%sound%cvox", srcRoot, sep == '\\' ? "\\" : "/", sep );
 	Game_Q_snprintf( dstSounds, sizeof( dstSounds ), "%s%sound%cvox", dstRoot, sep == '\\' ? "\\" : "/", sep );
 	Game_Q_snprintf( srcFonts, sizeof( srcFonts ), "%s%cgfx%cfonts", srcRoot, sep, sep );
 	Game_Q_snprintf( dstFonts, sizeof( dstFonts ), "%s%cgfx%cfonts", dstRoot, sep, sep );
+	Game_Q_snprintf( srcShell, sizeof( srcShell ), "%s%cgfx%cshell", srcRoot, sep, sep );
+	Game_Q_snprintf( dstShell, sizeof( dstShell ), "%s%cgfx%cshell", dstRoot, sep, sep );
+	Game_Q_snprintf( srcFontsWad, sizeof( srcFontsWad ), "%s%cfonts.wad", srcRoot, sep );
+	Game_Q_snprintf( dstFontsWad, sizeof( dstFontsWad ), "%s%cfonts.wad", dstRoot, sep );
+	Game_Q_snprintf( srcGfxWad, sizeof( srcGfxWad ), "%s%cgfx.wad", srcRoot, sep );
+	Game_Q_snprintf( dstGfxWad, sizeof( dstGfxWad ), "%s%cgfx.wad", dstRoot, sep );
+	Game_Q_snprintf( srcGameUi, sizeof( srcGameUi ), "%s%cresource%cgameui_english.txt", srcRoot, sep, sep );
+	Game_Q_snprintf( dstGameUi, sizeof( dstGameUi ), "%s%cresource%cgameui_english.txt", dstRoot, sep, sep );
+	Game_Q_snprintf( dstResource, sizeof( dstResource ), "%s%cresource", dstRoot, sep );
 
 	Game_MakeDirTree( dstRoot );
 	Game_MakeDirTree( dstSprites );
 	Game_MakeDirTree( dstSounds );
 	Game_MakeDirTree( dstFonts );
+	Game_MakeDirTree( dstShell );
+	Game_MakeDirTree( dstResource );
 
 	Game_SyncDir( srcSprites, dstSprites );
 	Game_SyncDir( srcSounds, dstSounds );
 	Game_SyncDir( srcFonts, dstFonts );
+	Game_SyncDir( srcShell, dstShell );
+	Game_CopyFileIfMissing( srcFontsWad, dstFontsWad );
+	Game_CopyFileIfMissing( srcGfxWad, dstGfxWad );
+	Game_CopyFileIfMissing( srcGameUi, dstGameUi );
 
 	{
 		char srcBrand[1024];
