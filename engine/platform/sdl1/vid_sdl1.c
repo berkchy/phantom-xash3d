@@ -211,7 +211,7 @@ void VID_SaveWindowSize( int width, int height, qboolean maximized )
 	int render_w = width, render_h = height;
 
 	VID_SetDisplayTransform( &render_w, &render_h );
-	R_SaveVideoMode( width, height, render_w, render_h, maximized );
+	R_SaveVideoMode( width, height, render_w, render_h, maximized, false );
 }
 
 static qboolean VID_SetScreenResolution( int width, int height, window_mode_t window_mode )

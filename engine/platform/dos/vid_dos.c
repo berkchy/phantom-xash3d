@@ -111,7 +111,7 @@ rserr_t   R_ChangeDisplaySettings( int width, int height, window_mode_t window_m
 	{
 		Con_Printf( S_WARN "failed to setup screen transform\n" );
 	}
-	R_SaveVideoMode( width, height, render_w, render_h );
+	R_SaveVideoMode( width, height, render_w, render_h, false, false );
 
 	return rserr_ok;
 }

@@ -400,7 +400,7 @@ void VID_SaveWindowSize( int width, int height )
 
 	VID_GetWindowSizeInPixels( host.hWnd, sw.renderer, &render_w, &render_h );
 	VID_SetDisplayTransform( &render_w, &render_h );
-	R_SaveVideoMode( width, height, render_w, render_h, maximized );
+	R_SaveVideoMode( width, height, render_w, render_h, maximized, false );
 }
 
 static qboolean VID_GuessFullscreenMode( int display_index, const SDL_DisplayMode *want, SDL_DisplayMode *got )

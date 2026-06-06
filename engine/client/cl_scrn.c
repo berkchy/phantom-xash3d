@@ -869,11 +869,8 @@ static void SCR_SizeDown_f( void )
 SCR_VidInit
 ==================
 */
-void SCR_VidInit( void )
+static void SCR_UpdateScreenSizeOnly( void )
 {
-	if( !ref.initialized ) // don't call VidInit too soon
-		return;
-
 	memset( &clgame.ds, 0, sizeof( clgame.ds )); // reset a draw state
 	memset( &gameui.ds, 0, sizeof( gameui.ds )); // reset a draw state
 	memset( &clgame.centerPrint, 0, sizeof( clgame.centerPrint ));
@@ -891,15 +888,30 @@ void SCR_VidInit( void )
 		VGui_Startup( refState.width, refState.height );
 	}
 
+	// restart console size
+	Con_VidInit ();
+	Touch_NotifyResize();
+}
+
+void SCR_Resize( void )
+{
+	if( !ref.initialized ) // don't call VidInit too soon
+		return;
+
+	SCR_UpdateScreenSizeOnly();
+}
+
+void SCR_VidInit( void )
+{
+	if( !ref.initialized ) // don't call VidInit too soon
+		return;
+
+	SCR_UpdateScreenSizeOnly();
 	CL_ClearSpriteTextures(); // now all hud sprites are invalid
 
 	// vid_state has changed
 	if( gameui.hInstance ) gameui.dllFuncs.pfnVidInit();
 	if( clgame.hInstance ) clgame.dllFuncs.pfnVidInit();
-
-	// restart console size
-	Con_VidInit ();
-	Touch_NotifyResize();
 }
 
 /*

@@ -1647,7 +1647,7 @@ static int pfnImGui_LoadFont_Impl( const char *fontPath, float fontSize )
 	if( !ref.dllFuncs.ImGui_LoadFont )
 	{
 		Con_Printf( "ImGui: engine wrapper LoadFont deferred because renderer ImGui_LoadFont is NULL\n" );
-		return 0;
+		return 1;
 	}
 
 	result = ref.dllFuncs.ImGui_LoadFont( fontPath, fontSize );
@@ -1657,9 +1657,11 @@ static int pfnImGui_LoadFont_Impl( const char *fontPath, float fontSize )
 	{
 		g_imguiPendingFontLoaded = true;
 		g_imguiPendingFontValid = false;
+		return 1;
 	}
 
-	return result;
+	Con_Printf( "ImGui: engine wrapper LoadFont pending, keeping menu text path enabled\n" );
+	return 1;
 }
 
 static int pfnImGui_GetTextWidth_Impl( const char *text, float fontSize )

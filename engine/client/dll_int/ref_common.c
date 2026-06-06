@@ -676,7 +676,7 @@ static void SetWidthAndHeightFromCommandLine( void )
 		return;
 	}
 
-	R_SaveVideoMode( width, height, width, height, false );
+	R_SaveVideoMode( width, height, width, height, false, false );
 }
 
 static void SetFullscreenModeFromCommandLine( void )

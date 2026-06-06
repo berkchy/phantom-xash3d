@@ -14,6 +14,8 @@ import android.graphics.drawable.GradientDrawable;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
+import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
@@ -35,6 +37,7 @@ import java.util.List;
 
 public class XashActivity extends SDLActivity {
 	private boolean mUseVolumeKeys;
+	private boolean mImmersiveFullscreen = true;
 	private String mPackageName;
 	private FrameLayout mMotdOverlay;
 	private WebView mMotdWebView;
@@ -47,6 +50,7 @@ public class XashActivity extends SDLActivity {
 		if (handleStopDedicated(getIntent()))
 			return;
 
+		mImmersiveFullscreen = getIntent().getBooleanExtra("ui_fullscreen", true);
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
 			//getWindow().addFlags(WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES);
@@ -54,6 +58,20 @@ public class XashActivity extends SDLActivity {
 		}
 
 		AndroidBug5497Workaround.assistActivity(this);
+		applyFullscreenUi();
+	}
+
+	@Override
+	protected void onResume() {
+		super.onResume();
+		applyFullscreenUi();
+	}
+
+	@Override
+	public void onWindowFocusChanged(boolean hasFocus) {
+		super.onWindowFocusChanged(hasFocus);
+		if( hasFocus )
+			applyFullscreenUi();
 	}
 
 	@Override
@@ -68,6 +86,43 @@ public class XashActivity extends SDLActivity {
 			return true;
 		}
 		return false;
+	}
+
+	private void applyFullscreenUi() {
+		if( !mImmersiveFullscreen )
+		{
+			getWindow().clearFlags( WindowManager.LayoutParams.FLAG_FULLSCREEN );
+			if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.R )
+				getWindow().setDecorFitsSystemWindows( true );
+			else
+				getWindow().getDecorView().setSystemUiVisibility( View.SYSTEM_UI_FLAG_VISIBLE );
+			return;
+		}
+
+		getWindow().addFlags( WindowManager.LayoutParams.FLAG_FULLSCREEN );
+
+		if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.R )
+		{
+			getWindow().setDecorFitsSystemWindows( false );
+			WindowInsetsController controller = getWindow().getInsetsController();
+			if( controller != null )
+			{
+				controller.hide( WindowInsets.Type.statusBars() | WindowInsets.Type.navigationBars() );
+				controller.setSystemBarsBehavior( WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE );
+			}
+		}
+		else
+		{
+			View decor = getWindow().getDecorView();
+			decor.setSystemUiVisibility(
+				View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+				| View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+				| View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+				| View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+				| View.SYSTEM_UI_FLAG_FULLSCREEN
+				| View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+			);
+		}
 	}
 
 	@Override
@@ -501,6 +556,7 @@ public class XashActivity extends SDLActivity {
 		appendStringExtra(sb, intent, "basedir");
 		appendStringExtra(sb, intent, "package");
 		appendStringExtra(sb, intent, "argv");
+		sb.append("  ui_fullscreen = ").append(intent.getBooleanExtra("ui_fullscreen", true)).append('\n');
 		sb.append("  usevolume = ").append(intent.getBooleanExtra("usevolume", false)).append('\n');
 		String[] env = intent.getStringArrayExtra("env");
 		if (env != null)
@@ -544,6 +600,7 @@ public class XashActivity extends SDLActivity {
 		}
 
 		mUseVolumeKeys = getIntent().getBooleanExtra("usevolume", false);
+		mImmersiveFullscreen = getIntent().getBooleanExtra("ui_fullscreen", true);
 		mPackageName = getIntent().getStringExtra("package");
 
 		String[] env = getIntent().getStringArrayExtra("env");

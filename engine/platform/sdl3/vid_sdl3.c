@@ -104,7 +104,7 @@ static void VID_SaveWindowSize( SDL_Window *hWnd, int width, int height )
 	}
 
 	VID_SetDisplayTransform( &render_w, &render_h );
-	R_SaveVideoMode( width, height, render_w, render_h, maximized );
+	R_SaveVideoMode( width, height, render_w, render_h, maximized, false );
 }
 
 static qboolean VID_CreateWindow( const int input_width, const int input_height, window_mode_t window_mode )

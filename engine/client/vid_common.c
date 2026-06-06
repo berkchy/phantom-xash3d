@@ -38,7 +38,7 @@ glwstate_t	glw_state;
 R_SaveVideoMode
 =================
 */
-void R_SaveVideoMode( int w, int h, int render_w, int render_h, qboolean maximized )
+void R_SaveVideoMode( int w, int h, int render_w, int render_h, qboolean maximized, qboolean reinit_client )
 {
 	string temp;
 
@@ -81,7 +81,10 @@ void R_SaveVideoMode( int w, int h, int render_w, int render_h, qboolean maximiz
 	// check for 4:3 or 5:4
 	refState.wideScreen = render_w * 3 != render_h * 4 && render_w * 4 != render_h * 5;
 
-	SCR_VidInit(); // tell client.dll that vid_mode has changed
+	if( reinit_client )
+		SCR_VidInit(); // tell client.dll that vid_mode has changed
+	else
+		SCR_Resize(); // update screen sizes without reloading HUD/menu resources
 }
 
 /*

@@ -133,7 +133,7 @@ rserr_t R_ChangeDisplaySettings( int width, int height, window_mode_t window_mod
 	Con_Reportf( "%s: forced resolution to %dx%d)\n", __func__, width, height );
 
 	VID_SetDisplayTransform( &render_w, &render_h );
-	R_SaveVideoMode( width, height, render_w, render_h, false );
+	R_SaveVideoMode( width, height, render_w, render_h, false, false );
 
 	return rserr_ok;
 }

@@ -960,6 +960,7 @@ void CL_ParseGoldSrcServerMessage( sizebuf_t *msg );
 // cl_scrn.c
 //
 void SCR_VidInit( void );
+void SCR_Resize( void );
 void SCR_TileClear( void );
 void SCR_DirtyScreen( void );
 void SCR_EndLoadingPlaque( void );
