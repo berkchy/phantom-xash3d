@@ -8,31 +8,6 @@ env:
   RELEASES_REPO: berkchy/phantom-releases
 
 jobs:
-  prepare-release:
-    name: Prepare Release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Prepare release tag
-        if: github.event_name == 'push'
-        env:
-          GITHUB_TOKEN: ""
-          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
-        run: |
-          if [[ "${GITHUB_REF_NAME}" == "master" ]]; then
-            TAG_NAME="continuous"
-          else
-            TAG_NAME="continuous-${GITHUB_REF_NAME}"
-          fi
-
-          if gh release view "$TAG_NAME" --repo "${{ env.RELEASES_REPO }}" >/dev/null 2>&1; then
-            gh release delete "$TAG_NAME" --yes --cleanup-tag --repo "${{ env.RELEASES_REPO }}"
-          fi
-
-          gh release create "$TAG_NAME" \
-            --title "Xash3D FWGS Continuous ${GITHUB_REF_NAME} Build" \
-            --prerelease \
-            --repo "${{ env.RELEASES_REPO }}"
-
 #  cleanup:
 #    runs-on: self-hosted
 #    steps:
