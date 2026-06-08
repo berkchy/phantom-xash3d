@@ -16,7 +16,6 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     continue-on-error: true
-    needs: [prepare-release]
     strategy:
       fail-fast: false
       matrix:
