@@ -1343,6 +1343,27 @@ static void CL_RegisterUserMessage( sizebuf_t *msg, connprotocol_t proto )
 	CL_LinkUserMessage( pszName, svc_num, size );
 }
 
+static void CL_DumpKnownUserMessages( void )
+{
+	int printed = 0;
+
+	Con_Reportf( S_ERROR "Known user messages:\n" );
+	for( int i = 0; i < MAX_USER_MESSAGES; i++ )
+	{
+		if( COM_StringEmpty( clgame.msg[i].name ))
+			continue;
+
+		if( clgame.msg[i].number >= 190 || !Q_stricmp( clgame.msg[i].name, "VoiceMask" ) || !Q_stricmp( clgame.msg[i].name, "ReqState" ) )
+		{
+			Con_Reportf( S_ERROR "  %3d size=%3d name=%s\n", clgame.msg[i].number, clgame.msg[i].size, clgame.msg[i].name );
+			printed++;
+		}
+	}
+
+	if( !printed )
+		Con_Reportf( S_ERROR "  <no registered messages yet>\n" );
+}
+
 /*
 ================
 CL_UpdateUserinfo
@@ -2241,7 +2262,11 @@ void CL_ParseUserMessage( sizebuf_t *msg, int svc_num, connprotocol_t proto )
 	}
 
 	if( i == MAX_USER_MESSAGES ) // probably unregistered
+	{
+		Con_Reportf( S_ERROR "%s: illegible server message %d (registered message table mismatch)\n", __func__, svc_num );
+		CL_DumpKnownUserMessages();
 		Host_Error( "%s: illegible server message %d\n", __func__, svc_num );
+	}
 
 	// NOTE: some user messages handled into engine
 	if( !Q_strcmp( clgame.msg[i].name, "ScreenShake" ))
