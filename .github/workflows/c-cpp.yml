@@ -30,7 +30,6 @@ jobs:
         gh release create "$TAG_NAME" \
           --title "Xash3D FWGS Continuous ${GITHUB_REF_NAME} Build" \
           --prerelease \
-          --target "${GITHUB_SHA}" \
           --repo "${{ env.RELEASES_REPO }}"
 
 #  cleanup:
