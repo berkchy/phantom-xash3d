@@ -2,6 +2,7 @@ package su.xash.engine;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.content.res.AssetManager;
 import android.os.Build;
@@ -12,6 +13,7 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.util.Log;
+import android.util.DisplayMetrics;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.WindowInsets;
@@ -19,6 +21,7 @@ import android.view.WindowInsetsController;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.view.SurfaceView;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -36,12 +39,18 @@ import java.util.Arrays;
 import java.util.List;
 
 public class XashActivity extends SDLActivity {
-	private boolean mUseVolumeKeys;
-	private boolean mImmersiveFullscreen = true;
-	private String mPackageName;
-	private FrameLayout mMotdOverlay;
-	private WebView mMotdWebView;
-	private static final String TAG = "XashActivity";
+    private static final String APP_PREFS = "app_preferences";
+    private static final int MIN_SURFACE_WIDTH = 320;
+    private static final int MIN_SURFACE_HEIGHT = 200;
+    private boolean mUseVolumeKeys;
+    private boolean mImmersiveFullscreen = true;
+    private String mPackageName;
+    private FrameLayout mMotdOverlay;
+    private WebView mMotdWebView;
+    private int mFixedSurfaceWidth;
+    private int mFixedSurfaceHeight;
+    private boolean mStretchFixedSurface;
+    private static final String TAG = "XashActivity";
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -50,14 +59,22 @@ public class XashActivity extends SDLActivity {
 		if (handleStopDedicated(getIntent()))
 			return;
 
-		mImmersiveFullscreen = getIntent().getBooleanExtra("ui_fullscreen", true);
+		mImmersiveFullscreen = resolveImmersiveFullscreen();
 		setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
 			//getWindow().addFlags(WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES);
 			getWindow().getAttributes().layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
 		}
 
-		AndroidBug5497Workaround.assistActivity(this);
+		parseFixedResolutionFromPreferences();
+		applyFixedSurfaceSize();
+
+		if (getBooleanPreference("keyboard_resizes_screen", true)) {
+			AndroidBug5497Workaround.assistActivity(this);
+		} else {
+			getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING);
+		}
+
 		applyFullscreenUi();
 	}
 
@@ -71,7 +88,10 @@ public class XashActivity extends SDLActivity {
 	public void onWindowFocusChanged(boolean hasFocus) {
 		super.onWindowFocusChanged(hasFocus);
 		if( hasFocus )
+		{
+			applyFixedSurfaceSize();
 			applyFullscreenUi();
+		}
 	}
 
 	@Override
@@ -86,6 +106,161 @@ public class XashActivity extends SDLActivity {
 			return true;
 		}
 		return false;
+	}
+
+	private SharedPreferences getAppPreferences() {
+		return getSharedPreferences(APP_PREFS, MODE_PRIVATE);
+	}
+
+	private String getDisplayModePreference() {
+		String mode = getAppPreferences().getString("display_mode", null);
+		if (mode == null || mode.trim().isEmpty()) {
+			return getIntent().getBooleanExtra("ui_fullscreen", true) ? "borderless" : "windowed";
+		}
+		return mode.trim();
+	}
+
+	private boolean resolveImmersiveFullscreen() {
+		String mode = getDisplayModePreference();
+		return !"windowed".equalsIgnoreCase(mode);
+	}
+
+	private boolean hasArgument(String argv, String name) {
+		if (argv == null || argv.isEmpty()) {
+			return false;
+		}
+
+		String[] args = argv.trim().split("\\s+");
+		for (String arg : args) {
+			if (name.equals(arg)) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private boolean getBooleanPreference(String key, boolean defaultValue) {
+		SharedPreferences prefs = getAppPreferences();
+		if (prefs.contains(key)) {
+			return prefs.getBoolean(key, defaultValue);
+		}
+
+		return defaultValue;
+	}
+
+	private void parseFixedResolutionFromPreferences() {
+		mFixedSurfaceWidth = 0;
+		mFixedSurfaceHeight = 0;
+
+		SharedPreferences prefs = getAppPreferences();
+		String resolution = getRenderResolutionPreference(prefs);
+		if (resolution == null || resolution.trim().isEmpty())
+			return;
+
+		String[] parts = resolution.trim().split("[xX,\\s]+");
+		if (parts.length < 2) {
+			Log.w(TAG, "Invalid render resolution preference: " + resolution);
+			return;
+		}
+
+		try {
+			int parsedWidth = Integer.parseInt(parts[0].trim());
+			int parsedHeight = Integer.parseInt(parts[1].trim());
+			if (parsedWidth >= MIN_SURFACE_WIDTH && parsedHeight >= MIN_SURFACE_HEIGHT) {
+				mFixedSurfaceWidth = parsedWidth;
+				mFixedSurfaceHeight = parsedHeight;
+				Log.d(TAG, "Using fixed Android surface size: " + parsedWidth + "x" + parsedHeight);
+			} else {
+				Log.w(TAG, "Render resolution is too small: " + resolution);
+			}
+		} catch (NumberFormatException e) {
+			Log.w(TAG, "Invalid render resolution preference: " + resolution);
+		}
+	}
+
+	private String getRenderResolutionPreference(SharedPreferences prefs) {
+		String resolution = prefs.getString("render_resolution", "");
+		if (resolution != null && !resolution.trim().isEmpty()) {
+			return resolution.trim();
+		}
+
+		String width = prefs.getString("display_width", "");
+		String height = prefs.getString("display_height", "");
+		if (width != null && height != null && !width.trim().isEmpty() && !height.trim().isEmpty()) {
+			return width.trim() + "x" + height.trim();
+		}
+
+		return "";
+	}
+
+	private void applyFixedSurfaceSize() {
+		if (mFixedSurfaceWidth <= 0 || mFixedSurfaceHeight <= 0) {
+			return;
+		}
+
+		SurfaceView surfaceView = findSurfaceView(getWindow().getDecorView());
+		if (surfaceView == null) {
+			Log.w(TAG, "SDL surface not found; fixed resolution will be applied later if possible");
+			return;
+		}
+
+		mStretchFixedSurface = getBooleanPreference("stretch_resolution", false);
+		if (mStretchFixedSurface) {
+			stretchSurfaceToScreen(surfaceView);
+			return;
+		}
+
+		surfaceView.getHolder().setFixedSize(mFixedSurfaceWidth, mFixedSurfaceHeight);
+	}
+
+	private void stretchSurfaceToScreen(SurfaceView surfaceView) {
+		View view = surfaceView;
+		while (view != null) {
+			ViewGroup.LayoutParams params = view.getLayoutParams();
+			if (params != null && (params.width != ViewGroup.LayoutParams.MATCH_PARENT || params.height != ViewGroup.LayoutParams.MATCH_PARENT)) {
+				params.width = ViewGroup.LayoutParams.MATCH_PARENT;
+				params.height = ViewGroup.LayoutParams.MATCH_PARENT;
+				view.setLayoutParams(params);
+			}
+
+			if (!(view.getParent() instanceof View)) {
+				break;
+			}
+
+			view = (View)view.getParent();
+		}
+
+		ViewGroup.LayoutParams params = surfaceView.getLayoutParams();
+		if (params != null && (params.width != ViewGroup.LayoutParams.MATCH_PARENT || params.height != ViewGroup.LayoutParams.MATCH_PARENT)) {
+			params.width = ViewGroup.LayoutParams.MATCH_PARENT;
+			params.height = ViewGroup.LayoutParams.MATCH_PARENT;
+			surfaceView.setLayoutParams(params);
+		}
+
+		surfaceView.setPivotX(0.0f);
+		surfaceView.setPivotY(0.0f);
+		surfaceView.setScaleX(1.0f);
+		surfaceView.setScaleY(1.0f);
+		surfaceView.requestLayout();
+	}
+
+	private SurfaceView findSurfaceView(View view) {
+		if (view instanceof SurfaceView) {
+			return (SurfaceView)view;
+		}
+
+		if (view instanceof ViewGroup) {
+			ViewGroup group = (ViewGroup)view;
+			for (int i = 0; i < group.getChildCount(); i++) {
+				SurfaceView surface = findSurfaceView(group.getChildAt(i));
+				if (surface != null) {
+					return surface;
+				}
+			}
+		}
+
+		return null;
 	}
 
 	private void applyFullscreenUi() {
@@ -556,7 +731,12 @@ public class XashActivity extends SDLActivity {
 		appendStringExtra(sb, intent, "basedir");
 		appendStringExtra(sb, intent, "package");
 		appendStringExtra(sb, intent, "argv");
-		sb.append("  ui_fullscreen = ").append(intent.getBooleanExtra("ui_fullscreen", true)).append('\n');
+		SharedPreferences prefs = getAppPreferences();
+		sb.append("  render_resolution = ").append(prefs.getString("render_resolution", "")).append('\n');
+		sb.append("  display_width = ").append(prefs.getString("display_width", "")).append('\n');
+		sb.append("  display_height = ").append(prefs.getString("display_height", "")).append('\n');
+		sb.append("  display_mode = ").append(prefs.getString("display_mode", "borderless")).append('\n');
+		sb.append("  ui_fullscreen = ").append(mImmersiveFullscreen).append('\n');
 		sb.append("  usevolume = ").append(intent.getBooleanExtra("usevolume", false)).append('\n');
 		String[] env = intent.getStringArrayExtra("env");
 		if (env != null)
@@ -600,7 +780,7 @@ public class XashActivity extends SDLActivity {
 		}
 
 		mUseVolumeKeys = getIntent().getBooleanExtra("usevolume", false);
-		mImmersiveFullscreen = getIntent().getBooleanExtra("ui_fullscreen", true);
+		mImmersiveFullscreen = resolveImmersiveFullscreen();
 		mPackageName = getIntent().getStringExtra("package");
 
 		String[] env = getIntent().getStringArrayExtra("env");
@@ -611,6 +791,32 @@ public class XashActivity extends SDLActivity {
 
 		String argv = getIntent().getStringExtra("argv");
 		if (argv == null) argv = "-console -log";
+
+		SharedPreferences prefs = getAppPreferences();
+		if (!hasArgument(argv, "-width") && !hasArgument(argv, "-height")) {
+			String resolution = getRenderResolutionPreference(prefs);
+			if (resolution != null && !resolution.trim().isEmpty()) {
+				String[] parts = resolution.trim().split("[xX,\\s]+");
+				if (parts.length >= 2) {
+					try {
+						int parsedWidth = Integer.parseInt(parts[0].trim());
+						int parsedHeight = Integer.parseInt(parts[1].trim());
+						if (parsedWidth >= MIN_SURFACE_WIDTH && parsedHeight >= MIN_SURFACE_HEIGHT) {
+							argv += " -width " + parsedWidth + " -height " + parsedHeight;
+						}
+					} catch (NumberFormatException ignored) {
+					}
+				}
+			}
+		}
+
+		if (getBooleanPreference("stretch_resolution", false) && !hasArgument(argv, "-stretch_resolution")) {
+			argv += " -stretch_resolution";
+		}
+
+		if (!getBooleanPreference("keyboard_resizes_screen", true) && !hasArgument(argv, "-noresize")) {
+			argv += " -noresize";
+		}
 
 		return argv.split(" ");
 	}

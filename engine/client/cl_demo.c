@@ -214,7 +214,7 @@ double CL_GetDemoFramerate( void )
 {
 	if( cls.timedemo )
 		return 0.0;
-	return bound( MIN_FPS, demo.header.host_fps, MAX_FPS_HARD );
+	return demo.header.host_fps > 0.0f ? demo.header.host_fps : 0.0;
 }
 
 /*
@@ -406,14 +406,12 @@ static void CL_WriteDemoHeader( const char *name )
 	cls.demorecording = true;
 	cls.demowaiting = true;	// don't start saving messages until a non-delta compressed message is received
 
-	double maxfps = fps_override.value ? MAX_FPS_HARD : MAX_FPS_SOFT;
-
 	memset( &demo.header, 0, sizeof( demo.header ));
 
 	demo.header.id = IDEMOHEADER;
 	demo.header.dem_protocol = DEMO_PROTOCOL;
 	demo.header.net_protocol = CL_GetDemoNetProtocol( cls.legacymode );
-	demo.header.host_fps = host_maxfps.value ? bound( MIN_FPS, host_maxfps.value, maxfps ) : maxfps;
+	demo.header.host_fps = host_maxfps.value > 0.0f ? host_maxfps.value : 0.0f;
 	Q_strncpy( demo.header.mapname, clgame.mapname, sizeof( demo.header.mapname ));
 	Q_strncpy( demo.header.comment, clgame.maptitle, sizeof( demo.header.comment ));
 	Q_strncpy( demo.header.gamedir, FS_Gamedir(), sizeof( demo.header.gamedir ));
@@ -1545,7 +1543,7 @@ void CL_PlayDemo_f( void )
 	{
 		int	c, neg = false;
 
-		demo.header.host_fps = host_maxfps.value;
+		demo.header.host_fps = host_maxfps.value > 0.0f ? host_maxfps.value : 0.0f;
 
 		while(( c = FS_Getc( cls.demofile )) != '\n' )
 		{

@@ -24,6 +24,7 @@ CVAR_DEFINE_AUTO( scr_centertime, "2.5", 0, "centerprint hold time" );
 CVAR_DEFINE_AUTO( scr_loading, "0", 0, "loading bar progress" );
 CVAR_DEFINE_AUTO( scr_download, "-1", 0, "downloading bar progress" );
 CVAR_DEFINE( scr_viewsize, "viewsize", "120", FCVAR_ARCHIVE, "screen size (quake only)" );
+CVAR_DEFINE_AUTO( skipframe, "0", FCVAR_ARCHIVE, "skip rendered game frames to reduce render load (0: off, N: skip N frames after each rendered frame)" );
 CVAR_DEFINE_AUTO( cl_testlights, "0", FCVAR_CHEAT, "test dynamic lights" );
 CVAR_DEFINE( cl_allow_levelshots, "allow_levelshots", "0", FCVAR_ARCHIVE, "allow engine to use indivdual levelshots instead of 'loading' image" );
 CVAR_DEFINE_AUTO( cl_levelshot_name, "*black", 0, "contains path to current levelshot" );
@@ -42,6 +43,45 @@ typedef struct
 
 static dirty_t	scr_dirty, scr_old_dirty[2];
 static qboolean	scr_init = false;
+static int	scr_skipframe_counter = 0;
+
+static qboolean SCR_ShouldSkipFrame( void )
+{
+	int skip = (int)bound( 0.0f, skipframe.value, 32.0f );
+
+	if( skip <= 0 )
+	{
+		scr_skipframe_counter = 0;
+		return false;
+	}
+
+	if( cls.state != ca_active || cls.signon != SIGNONS )
+	{
+		scr_skipframe_counter = 0;
+		return false;
+	}
+
+	if( cls.key_dest != key_game || Con_Visible( ))
+	{
+		scr_skipframe_counter = 0;
+		return false;
+	}
+
+	if( cls.timedemo || cls.scrshot_action != scrshot_inactive || cls.disable_screen )
+	{
+		scr_skipframe_counter = 0;
+		return false;
+	}
+
+	if( scr_skipframe_counter < skip )
+	{
+		scr_skipframe_counter++;
+		return true;
+	}
+
+	scr_skipframe_counter = 0;
+	return false;
+}
 
 /*
 ==============
@@ -673,6 +713,9 @@ void SCR_UpdateScreen( void )
 {
 	qboolean screen_redraw = true; // assume screen has been redrawn
 
+	if( SCR_ShouldSkipFrame( ))
+		return;
+
 	if( !V_PreRender( )) return;
 
 	switch( cls.state )
@@ -928,6 +971,7 @@ void SCR_Init( void )
 	Cvar_RegisterVariable( &cl_allow_levelshots );
 	Cvar_RegisterVariable( &scr_loading );
 	Cvar_RegisterVariable( &scr_download );
+	Cvar_RegisterVariable( &skipframe );
 	Cvar_RegisterVariable( &cl_testlights );
 	Cvar_RegisterVariable( &cl_envshot_size );
 	Cvar_RegisterVariable( &v_dark );

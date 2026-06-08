@@ -4,10 +4,36 @@
 	<string name="library">Library</string>
 	<string name="dedicated_server">Dedicated server</string>
 	<string name="app_settings">Settings</string>
+	<string name="settings_overview_subtitle">Display, storage and runtime controls in one place.</string>
+	<string name="settings_storage">Storage</string>
+	<string name="settings_display">Display</string>
+	<string name="settings_runtime">Runtime</string>
+	<string name="render_resolution">Render resolution</string>
+	<string name="render_resolution_summary">Native display resolution</string>
+	<string name="render_resolution_dialog">Render Resolution</string>
+	<string name="global_command_line">Global command line</string>
+	<string name="fix_font">Fix font</string>
+	<string name="fix_font_summary">Force a fallback font when the selected one is missing glyphs</string>
+	<string name="enable_downloader">Enable downloader</string>
+	<string name="enable_downloader_summary">Allow the launcher to fetch missing game data packages</string>
+	<string name="using_internal_storage">Internal Storage (Android/data)</string>
+	<string name="using_external_storage">External Storage (/storage/emulated/0/xash)</string>
+	<string name="clear">Clear</string>
 	<string name="game_settings">Game Settings</string>
 	<string name="game_settings_command_line">Command-line arguments</string>
 	<string name="game_settings_volume_buttons">Use volume buttons in-game</string>
 	<string name="game_settings_yapb_bots">Enable YaPB bots (CS only)</string>
+	<string name="preferences_display">Display</string>
+	<string name="preferences_display_width">Screen width</string>
+	<string name="preferences_display_height">Screen height</string>
+	<string name="preferences_display_mode">Fullscreen mode</string>
+	<string name="preferences_display_mode_windowed">Windowed</string>
+	<string name="preferences_display_mode_fullscreen">Fullscreen</string>
+	<string name="preferences_display_mode_borderless">Borderless</string>
+	<string name="stretch_resolution">Stretch resolution</string>
+	<string name="stretch_resolution_summary">Scale the selected render resolution to fill the screen</string>
+	<string name="keyboard_resizes_screen">Keyboard resizes screen</string>
+	<string name="keyboard_resizes_screen_summary">Resize the game window when the keyboard is shown</string>
 	<string name="preferences_package_name">Libraries package</string>
 	<string name="preferences_separate_libraries">Libraries from separate packages</string>
 	<string name="preferences_client_package">Client package</string>
@@ -65,6 +91,8 @@
 	<string name="engine_update_open_settings">Open settings</string>
 	<string name="engine_install_failed">Update install failed: %1$s</string>
 	<string name="search_games">Search games</string>
+	<string name="library_subtitle">Installed games, quick launch and filters</string>
+	<string name="library_hint">Pull down to rescan the game directory. Search and sorting stay on this screen so the launcher stays clean.</string>
 	<string name="no_games_found">No games found</string>
 	<string name="no_games_found_message">Place your game data in the configured directory or change the location in Settings.</string>
 	<string name="go_to_settings">Go to Settings</string>
@@ -91,4 +119,8 @@
 	<string name="open_game_folder">Open game folder</string>
 	<string name="context_start">Start game</string>
 	<string name="context_settings">Game settings</string>
+	<plurals name="library_games_count">
+		<item quantity="one">%d game installed</item>
+		<item quantity="other">%d games installed</item>
+	</plurals>
 </resources>

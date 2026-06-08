@@ -21,6 +21,8 @@ GNU General Public License for more details.
 #include "vid_common.h"
 #include "imagelib.h"
 
+#include <stdlib.h>
+
 struct ref_state_s ref;
 
 extern void UI_ImGui_TryLoadPendingFont( const char *reason );
@@ -663,12 +665,79 @@ static qboolean R_LoadRenderer( const char *refopt, qboolean quiet )
 	return true;
 }
 
-static void SetWidthAndHeightFromCommandLine( void )
+static qboolean R_GetIntFromEnv( const char *name, int *out )
 {
-	int width, height;
+	const char *value = getenv( name );
 
-	Sys_GetIntFromCmdLine( "-width", &width );
-	Sys_GetIntFromCmdLine( "-height", &height );
+	if( !out )
+		return false;
+
+	if( !value || !value[0] )
+	{
+		*out = 0;
+		return false;
+	}
+
+	*out = Q_atoi( value );
+	return true;
+}
+
+static qboolean R_GetFullscreenModeFromEnv( int *mode )
+{
+	const char *value = getenv( "XASH3D_FULLSCREEN_MODE" );
+
+	if( !mode )
+		return false;
+
+	if( !value || !value[0] )
+		return false;
+
+	if( !Q_stricmp( value, "windowed" ))
+	{
+		*mode = WINDOW_MODE_WINDOWED;
+		return true;
+	}
+
+	if( !Q_stricmp( value, "fullscreen" ))
+	{
+		*mode = WINDOW_MODE_FULLSCREEN;
+		return true;
+	}
+
+	if( !Q_stricmp( value, "borderless" ))
+	{
+		*mode = WINDOW_MODE_BORDERLESS;
+		return true;
+	}
+
+	if( Q_isdigit( value ))
+	{
+		int parsed = Q_atoi( value );
+		if( parsed >= WINDOW_MODE_WINDOWED && parsed <= WINDOW_MODE_BORDERLESS )
+		{
+			*mode = parsed;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+static void SetWidthAndHeightFromLaunchSettings( void )
+{
+	int width = 0, height = 0;
+
+	if( !Sys_GetIntFromCmdLine( "-width", &width ) || !Sys_GetIntFromCmdLine( "-height", &height ))
+	{
+		int envWidth = 0;
+		int envHeight = 0;
+
+		if( R_GetIntFromEnv( "XASH3D_WIDTH", &envWidth ) && R_GetIntFromEnv( "XASH3D_HEIGHT", &envHeight ))
+		{
+			width = envWidth;
+			height = envHeight;
+		}
+	}
 
 	if( width < VID_MIN_WIDTH || height < VID_MIN_HEIGHT )
 	{
@@ -679,7 +748,7 @@ static void SetWidthAndHeightFromCommandLine( void )
 	R_SaveVideoMode( width, height, width, height, false, false );
 }
 
-static void SetFullscreenModeFromCommandLine( void )
+static void SetFullscreenModeFromLaunchSettings( void )
 {
 	if( Sys_CheckParm( "-borderless" ))
 		Cvar_DirectSetValue( &vid_fullscreen, WINDOW_MODE_BORDERLESS );
@@ -687,6 +756,12 @@ static void SetFullscreenModeFromCommandLine( void )
 		Cvar_DirectSetValue( &vid_fullscreen, WINDOW_MODE_FULLSCREEN );
 	else if( Sys_CheckParm( "-windowed" ))
 		Cvar_DirectSetValue( &vid_fullscreen, WINDOW_MODE_WINDOWED );
+	else
+	{
+		int fullscreenMode = (int)vid_fullscreen.value;
+		if( R_GetFullscreenModeFromEnv( &fullscreenMode ))
+			Cvar_DirectSetValue( &vid_fullscreen, fullscreenMode );
+	}
 }
 
 static void R_CollectRendererNames( void )
@@ -798,10 +873,10 @@ qboolean R_Init( void )
 	Cbuf_AddText( "exec video.cfg\n" );
 	Cbuf_Execute();
 
-	// Set screen resolution and fullscreen mode if passed in on command line.
-	// this is done after executing video.cfg, as the command line values should take priority.
-	SetWidthAndHeightFromCommandLine();
-	SetFullscreenModeFromCommandLine();
+	// Set screen resolution and fullscreen mode from launch settings.
+	// command line values take priority, environment fallbacks are used by Android app settings.
+	SetWidthAndHeightFromLaunchSettings();
+	SetFullscreenModeFromLaunchSettings();
 
 	R_CollectRendererNames();
 

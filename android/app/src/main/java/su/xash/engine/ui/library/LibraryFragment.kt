@@ -9,16 +9,11 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
 import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.widget.SearchView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import androidx.core.view.MenuProvider
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
@@ -26,13 +21,16 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.button.MaterialButtonToggleGroup
 import su.xash.engine.BuildConfig
 import su.xash.engine.R
 import su.xash.engine.adapters.GameAdapter
 import su.xash.engine.databinding.FragmentLibraryBinding
+import android.text.Editable
+import android.text.TextWatcher
 
 
-class LibraryFragment : Fragment(), MenuProvider {
+class LibraryFragment : Fragment() {
 	private var _binding: FragmentLibraryBinding? = null
 	private val binding get() = _binding!!
 
@@ -138,8 +136,13 @@ class LibraryFragment : Fragment(), MenuProvider {
 		gameAdapter = GameAdapter(libraryViewModel, false)
 		binding.gamesList.adapter = gameAdapter
 		binding.gamesList.layoutManager = LinearLayoutManager(requireContext())
-
-		requireActivity().addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
+		binding.gamesList.clipToPadding = false
+		binding.gamesList.setPadding(
+			binding.gamesList.paddingLeft,
+			binding.gamesList.paddingTop,
+			binding.gamesList.paddingRight,
+			(resources.displayMetrics.density * 128f).toInt()
+		)
 
 		return binding.root
 	}
@@ -153,13 +156,51 @@ class LibraryFragment : Fragment(), MenuProvider {
 
 		libraryViewModel.installedGames.observe(viewLifecycleOwner) { games ->
 			gameAdapter?.submitList(games)
+			binding.libraryCount.text = resources.getQuantityString(
+				R.plurals.library_games_count,
+				games.size,
+				games.size
+			)
 			binding.emptyState.visibility = if (games.isEmpty()) View.VISIBLE else View.GONE
 			binding.gamesList.visibility = if (games.isEmpty()) View.GONE else View.VISIBLE
+		}
+
+		binding.searchInput.addTextChangedListener(object : TextWatcher {
+			override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+			override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+			override fun afterTextChanged(s: Editable?) {
+				libraryViewModel.updateSearchQuery(s?.toString().orEmpty())
+			}
+		})
+
+		binding.viewToggleGroup.addOnButtonCheckedListener { _: MaterialButtonToggleGroup, checkedId: Int, isChecked: Boolean ->
+			if (!isChecked) return@addOnButtonCheckedListener
+			val newGrid = checkedId == R.id.gridViewButton
+			if (libraryViewModel.isGridView != newGrid) {
+				libraryViewModel.toggleViewMode()
+				swapLayoutManager(newGrid)
+			}
+		}
+
+		binding.sortToggleGroup.addOnButtonCheckedListener { _: MaterialButtonToggleGroup, checkedId: Int, isChecked: Boolean ->
+			if (!isChecked) return@addOnButtonCheckedListener
+			when (checkedId) {
+				R.id.sortAscButton -> libraryViewModel.updateSortOrder(SortOrder.NAME_ASC)
+				R.id.sortDescButton -> libraryViewModel.updateSortOrder(SortOrder.NAME_DESC)
+			}
 		}
 
 		binding.goToSettingsButton.setOnClickListener {
 			findNavController().navigate(R.id.action_libraryFragment_to_appSettingsFragment)
 		}
+
+		binding.viewToggleGroup.check(
+			if (libraryViewModel.isGridView) R.id.gridViewButton else R.id.listViewButton
+		)
+		binding.sortToggleGroup.check(
+			if (libraryViewModel.sortOrder == SortOrder.NAME_ASC) R.id.sortAscButton else R.id.sortDescButton
+		)
+		binding.searchInput.setText(libraryViewModel.searchQuery)
 
 		if (checkStoragePermissions()) {
 			libraryViewModel.reloadGames(requireContext())
@@ -171,65 +212,25 @@ class LibraryFragment : Fragment(), MenuProvider {
 		_binding = null
 	}
 
-	override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
-		menuInflater.inflate(R.menu.menu_library, menu)
-
-		val searchItem = menu.findItem(R.id.action_search)
-		val searchView = searchItem?.actionView as? SearchView
-		searchView?.queryHint = getString(R.string.search_games)
-		searchView?.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
-			override fun onQueryTextSubmit(query: String?): Boolean {
-				libraryViewModel.updateSearchQuery(query ?: "")
-				return true
-			}
-
-			override fun onQueryTextChange(newText: String?): Boolean {
-				libraryViewModel.updateSearchQuery(newText ?: "")
-				return true
-			}
-		})
-		searchView?.setOnCloseListener {
-			libraryViewModel.updateSearchQuery("")
-			false
-		}
-	}
-
-	override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
-		when (menuItem.itemId) {
-			R.id.action_settings -> {
-				findNavController().navigate(R.id.action_libraryFragment_to_appSettingsFragment)
-				return true
-			}
-			R.id.action_toggle_view -> toggleViewMode(menuItem)
-			R.id.action_sort_name_asc -> libraryViewModel.updateSortOrder(SortOrder.NAME_ASC)
-			R.id.action_sort_name_desc -> libraryViewModel.updateSortOrder(SortOrder.NAME_DESC)
-			R.id.action_dedicated_server -> {
-				findNavController().navigate(R.id.action_libraryFragment_to_dedicatedServerFragment)
-				return true
-			}
-		}
-		return false
-	}
-
-	private fun toggleViewMode(item: MenuItem) {
-		libraryViewModel.toggleViewMode()
-		val isGrid = libraryViewModel.isGridView
-		item.icon = if (isGrid) {
-			requireContext().getDrawable(R.drawable.ic_baseline_view_list_24)
-		} else {
-			requireContext().getDrawable(R.drawable.ic_baseline_view_module_24)
-		}
-		item.title = if (isGrid) getString(R.string.list_view) else getString(R.string.grid_view)
-
+	private fun swapLayoutManager(isGrid: Boolean) {
 		val adapter = GameAdapter(libraryViewModel, isGrid)
 		gameAdapter = adapter
 		binding.gamesList.adapter = adapter
 		binding.gamesList.layoutManager = if (isGrid) {
-			GridLayoutManager(requireContext(), 2)
+			GridLayoutManager(requireContext(), calculateGridSpanCount())
 		} else {
 			LinearLayoutManager(requireContext())
 		}
 		libraryViewModel.installedGames.value?.let { adapter.submitList(it) }
+	}
+
+	private fun calculateGridSpanCount(): Int {
+		val widthDp = resources.configuration.screenWidthDp
+		return when {
+			widthDp < 480 -> 1
+			widthDp < 840 -> 2
+			else -> 3
+		}
 	}
 
 	override fun onResume() {

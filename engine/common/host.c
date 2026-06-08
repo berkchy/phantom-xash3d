@@ -508,7 +508,7 @@ static double Host_CalcFPS( void )
 	else if( Host_IsSinglePlayerGame( ))
 	{
 		if( !gl_vsync.value )
-			fps = host_maxfps.value;
+			fps = host_maxfps.value > 0.0f ? host_maxfps.value : 0.0;
 	}
 	else if( !SV_Active() && CL_Protocol() == PROTO_GOLDSRC && cls.state != ca_disconnected && cls.state < ca_validate )
 	{
@@ -518,11 +518,7 @@ static double Host_CalcFPS( void )
 	{
 		if( !gl_vsync.value )
 		{
-			double max_fps = fps_override.value ? MAX_FPS_HARD : MAX_FPS_SOFT;
-
-			fps = host_maxfps.value;
-			if( fps == 0.0 ) fps = max_fps;
-			fps = bound( MIN_FPS, fps, max_fps );
+			fps = host_maxfps.value > 0.0f ? host_maxfps.value : 0.0;
 		}
 	}
 #endif
@@ -537,9 +533,6 @@ static qboolean Host_Autosleep( double dt, double scale )
 
 	if( fps <= 0 )
 		return true;
-
-	// limit fps to withing tolerable range
-	fps = bound( MIN_FPS, fps, MAX_FPS_HARD );
 
 	if( Host_IsDedicated( ))
 		targetframetime = ( 1.0 / ( fps + 1.0 ));
@@ -1077,7 +1070,7 @@ static void Host_InitCommon( int argc, char **argv, const char *progname, qboole
 
 	int ticrate;
 	if( Sys_GetIntFromCmdLine( "-sys_ticrate", &ticrate ))
-		Cvar_DirectSetValue( &sys_ticrate, bound( MIN_FPS, ticrate, MAX_FPS_HARD ));
+		Cvar_DirectSetValue( &sys_ticrate, (float)ticrate );
 
 	Sys_InitLog();
 	Con_Init(); // early console running to catch all the messages

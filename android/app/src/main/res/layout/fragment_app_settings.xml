@@ -1,12 +1,260 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
 	xmlns:tools="http://schemas.android.com/tools"
 	android:layout_width="match_parent"
-	android:layout_height="match_parent">
+	android:layout_height="match_parent"
+	android:fillViewport="true"
+	android:background="@color/hl_dark_grey">
 
-	<androidx.fragment.app.FragmentContainerView
-		android:id="@+id/settingsFragment"
+	<LinearLayout
 		android:layout_width="match_parent"
-		android:layout_height="match_parent"
-		tools:layout="@android:layout/list_content" />
-</androidx.constraintlayout.widget.ConstraintLayout>
+		android:layout_height="wrap_content"
+		android:orientation="vertical"
+		android:padding="16dp">
+
+		<com.google.android.material.card.MaterialCardView
+			android:id="@+id/settingsHeroCard"
+			style="@style/Widget.Material3.CardView.Filled"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="12dp"
+			app:cardBackgroundColor="@color/hl_grey">
+
+			<LinearLayout
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:orientation="vertical"
+				android:padding="16dp">
+
+				<com.google.android.material.textview.MaterialTextView
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="@string/app_settings"
+					android:textColor="@android:color/white"
+					android:textSize="22sp"
+					android:textStyle="bold" />
+
+				<com.google.android.material.textview.MaterialTextView
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="6dp"
+					android:text="@string/settings_overview_subtitle"
+					android:textColor="@android:color/darker_gray"
+					android:textSize="13sp"
+					tools:text="Display, storage and gameplay settings used by the launcher and engine." />
+			</LinearLayout>
+		</com.google.android.material.card.MaterialCardView>
+
+		<com.google.android.material.card.MaterialCardView
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="12dp"
+			app:cardBackgroundColor="@color/hl_grey">
+
+			<LinearLayout
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:orientation="vertical"
+				android:padding="16dp">
+
+				<com.google.android.material.textview.MaterialTextView
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="@string/settings_storage"
+					android:textColor="@android:color/white"
+					android:textSize="16sp"
+					android:textStyle="bold" />
+
+				<com.google.android.material.textview.MaterialTextView
+					android:id="@+id/gamePathSummary"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="4dp"
+					android:textColor="@android:color/darker_gray"
+					android:textSize="12sp"
+					tools:text="/storage/emulated/0/xash" />
+
+				<com.google.android.material.textfield.TextInputLayout
+					android:id="@+id/gamePathLayout"
+					style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="12dp"
+					android:hint="@string/game_data_location"
+					app:boxBackgroundColor="@color/hl_dark_grey"
+					app:boxStrokeColor="@color/hl_orange">
+
+					<com.google.android.material.textfield.TextInputEditText
+						android:id="@+id/gamePathInput"
+						android:layout_width="match_parent"
+						android:layout_height="wrap_content"
+						android:inputType="textUri"
+						android:singleLine="true" />
+				</com.google.android.material.textfield.TextInputLayout>
+
+				<com.google.android.material.materialswitch.MaterialSwitch
+					android:id="@+id/useAndroidDataSwitch"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="8dp"
+					android:text="@string/preferences_use_android_data" />
+			</LinearLayout>
+		</com.google.android.material.card.MaterialCardView>
+
+		<com.google.android.material.card.MaterialCardView
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="12dp"
+			app:cardBackgroundColor="@color/hl_grey">
+
+			<LinearLayout
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:orientation="vertical"
+				android:padding="16dp">
+
+				<com.google.android.material.textview.MaterialTextView
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="@string/settings_display"
+					android:textColor="@android:color/white"
+					android:textSize="16sp"
+					android:textStyle="bold" />
+
+				<com.google.android.material.button.MaterialButton
+					android:id="@+id/renderResolutionButton"
+					style="@style/Widget.Material3.Button.OutlinedButton"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="12dp"
+					android:text="@string/render_resolution" />
+
+				<com.google.android.material.textview.MaterialTextView
+					android:id="@+id/renderResolutionSummary"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="4dp"
+					android:textColor="@android:color/darker_gray"
+					android:textSize="12sp"
+					tools:text="Native display resolution" />
+
+				<com.google.android.material.button.MaterialButtonToggleGroup
+					android:id="@+id/displayModeGroup"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="12dp"
+					app:singleSelection="true"
+					app:selectionRequired="true">
+
+					<com.google.android.material.button.MaterialButton
+						android:id="@+id/windowedButton"
+						style="@style/Widget.Material3.Button.OutlinedButton"
+						android:layout_width="0dp"
+						android:layout_height="wrap_content"
+						android:layout_weight="1"
+						android:text="@string/preferences_display_mode_windowed" />
+
+					<com.google.android.material.button.MaterialButton
+						android:id="@+id/borderlessButton"
+						style="@style/Widget.Material3.Button.OutlinedButton"
+						android:layout_width="0dp"
+						android:layout_height="wrap_content"
+						android:layout_weight="1"
+						android:text="@string/preferences_display_mode_borderless" />
+
+					<com.google.android.material.button.MaterialButton
+						android:id="@+id/fullscreenButton"
+						style="@style/Widget.Material3.Button.OutlinedButton"
+						android:layout_width="0dp"
+						android:layout_height="wrap_content"
+						android:layout_weight="1"
+						android:text="@string/preferences_display_mode_fullscreen" />
+				</com.google.android.material.button.MaterialButtonToggleGroup>
+
+				<com.google.android.material.materialswitch.MaterialSwitch
+					android:id="@+id/stretchResolutionSwitch"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="12dp"
+					android:text="@string/stretch_resolution" />
+
+				<com.google.android.material.materialswitch.MaterialSwitch
+					android:id="@+id/keyboardResizesSwitch"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="4dp"
+					android:text="@string/keyboard_resizes_screen" />
+			</LinearLayout>
+		</com.google.android.material.card.MaterialCardView>
+
+		<com.google.android.material.card.MaterialCardView
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="12dp"
+			app:cardBackgroundColor="@color/hl_grey">
+
+			<LinearLayout
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:orientation="vertical"
+				android:padding="16dp">
+
+				<com.google.android.material.textview.MaterialTextView
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="@string/settings_runtime"
+					android:textColor="@android:color/white"
+					android:textSize="16sp"
+					android:textStyle="bold" />
+
+				<com.google.android.material.textfield.TextInputLayout
+					android:id="@+id/globalArgsLayout"
+					style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="12dp"
+					android:hint="@string/global_command_line"
+					app:boxBackgroundColor="@color/hl_dark_grey"
+					app:boxStrokeColor="@color/hl_orange">
+
+					<com.google.android.material.textfield.TextInputEditText
+						android:id="@+id/globalArgsInput"
+						android:layout_width="match_parent"
+						android:layout_height="wrap_content"
+						android:inputType="text"
+						android:singleLine="true" />
+				</com.google.android.material.textfield.TextInputLayout>
+
+				<com.google.android.material.materialswitch.MaterialSwitch
+					android:id="@+id/fixFontSwitch"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="12dp"
+					android:text="@string/fix_font" />
+
+				<com.google.android.material.materialswitch.MaterialSwitch
+					android:id="@+id/enableDownloaderSwitch"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="4dp"
+					android:text="@string/enable_downloader" />
+
+				<com.google.android.material.materialswitch.MaterialSwitch
+					android:id="@+id/enableYapbSwitch"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="4dp"
+					android:text="@string/game_settings_yapb_bots" />
+
+				<com.google.android.material.button.MaterialButton
+					android:id="@+id/crashLogsButton"
+					style="@style/Widget.Material3.Button.TextButton"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="12dp"
+					android:text="@string/crash_logs" />
+			</LinearLayout>
+		</com.google.android.material.card.MaterialCardView>
+	</LinearLayout>
+</androidx.core.widget.NestedScrollView>

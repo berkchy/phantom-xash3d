@@ -7,7 +7,6 @@ import android.view.animation.AnimationUtils
 import android.widget.PopupMenu
 import androidx.navigation.findNavController
 import androidx.recyclerview.widget.DiffUtil
-import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import su.xash.engine.R
@@ -31,15 +30,6 @@ class GameAdapter(
 	override fun onBindViewHolder(holder: GameAdapter.GameViewHolder, position: Int) {
 		holder.bind(getItem(position))
 		setAnimation(holder.itemView, position)
-	}
-
-	override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
-		super.onAttachedToRecyclerView(recyclerView)
-		recyclerView.layoutManager?.let { lm ->
-			if (lm is GridLayoutManager) {
-				lm.spanCount = if (isGrid) 2 else 1
-			}
-		}
 	}
 
 	private fun setAnimation(view: View, position: Int) {
@@ -66,6 +56,7 @@ class GameAdapter(
 		fun bind(game: Game) {
 			binding.apply {
 				gameTitle.text = game.title
+				gameSubtitle.text = game.basedir.name
 
 				if (game.icon != null) {
 					gameIcon.setImageBitmap(game.icon)

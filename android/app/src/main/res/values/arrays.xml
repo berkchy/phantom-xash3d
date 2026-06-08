@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string-array name="display_mode_entries">
+		<item>@string/preferences_display_mode_windowed</item>
+		<item>@string/preferences_display_mode_fullscreen</item>
+		<item>@string/preferences_display_mode_borderless</item>
+	</string-array>
+
+	<string-array name="display_mode_values">
+		<item>windowed</item>
+		<item>fullscreen</item>
+		<item>borderless</item>
+	</string-array>
+</resources>

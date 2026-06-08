@@ -79,42 +79,9 @@ static void BuildGammaTable( const float gamma, const float brightness, const fl
 	}
 }
 
-static void V_ValidateGammaCvars( void )
-{
-	if( v_gamma.value < 1.8f )
-		Cvar_DirectSet( &v_gamma, "1.8" );
-	else if( v_gamma.value > 3.0f )
-		Cvar_DirectSet( &v_gamma, "3" );
-
-	if( v_texgamma.value < 1.8f )
-		Cvar_DirectSet( &v_texgamma, "1.8" );
-	else if( v_texgamma.value > 3.0f )
-		Cvar_DirectSet( &v_texgamma, "3" );
-
-	if( v_lightgamma.value < 1.8f )
-		Cvar_DirectSet( &v_lightgamma, "1.8" );
-	else if( v_lightgamma.value > 3.0f )
-		Cvar_DirectSet( &v_lightgamma, "3" );
-
-	if( v_brightness.value < 0.0f )
-		Cvar_DirectSet( &v_brightness, "0" );
-	else if( v_brightness.value > 3.0f )
-		Cvar_DirectSet( &v_brightness, "3" );
-}
-
 void V_CheckGamma( void )
 {
 	static qboolean dirty = false;
-
-	// because these cvars were defined as archive
-	// but wasn't doing anything useful
-	// reset them into default values
-	// this might be removed after a while
-	if( v_direct.value == 1.0f || v_lightgamma.value == 1.0f )
-	{
-		Cvar_DirectSet( &v_direct, "0.9" );
-		Cvar_DirectSet( &v_lightgamma, "2.5" );
-	}
 
 	if( cls.scrshot_action == scrshot_envshot || cls.scrshot_action == scrshot_skyshot )
 	{
@@ -127,8 +94,6 @@ void V_CheckGamma( void )
 
 	if( dirty || FBitSet( v_texgamma.flags|v_lightgamma.flags|v_brightness.flags|v_gamma.flags, FCVAR_CHANGED ))
 	{
-		V_ValidateGammaCvars();
-
 		dirty = false;
 		gamma_rebuilt = true;
 

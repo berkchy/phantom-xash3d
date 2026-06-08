@@ -1,174 +1,186 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
 	xmlns:app="http://schemas.android.com/apk/res-auto"
 	xmlns:tools="http://schemas.android.com/tools"
 	android:layout_width="match_parent"
 	android:layout_height="match_parent"
-	android:padding="16dp">
-
-	<com.google.android.material.card.MaterialCardView
-		android:id="@+id/serverStatusCard"
-		style="@style/Widget.Material3.CardView.Filled"
-		android:layout_width="match_parent"
-		android:layout_height="wrap_content"
-		app:layout_constraintTop_toTopOf="parent">
-
-		<androidx.constraintlayout.widget.ConstraintLayout
-			android:layout_width="match_parent"
-			android:layout_height="wrap_content"
-			android:padding="16dp">
-
-			<TextView
-				android:id="@+id/serverStatusLabel"
-				style="@style/TextAppearance.Material3.TitleSmall"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:text="@string/server_status_stopped"
-				android:textColor="@color/hl_orange"
-				app:layout_constraintEnd_toEndOf="parent"
-				app:layout_constraintTop_toTopOf="parent" />
-
-			<TextView
-				android:id="@+id/serverStatusTitle"
-				style="@style/TextAppearance.Material3.TitleMedium"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:text="@string/dedicated_server"
-				app:layout_constraintStart_toStartOf="parent"
-				app:layout_constraintTop_toTopOf="parent" />
-		</androidx.constraintlayout.widget.ConstraintLayout>
-	</com.google.android.material.card.MaterialCardView>
-
-	<com.google.android.material.card.MaterialCardView
-		android:id="@+id/serverSettingsCard"
-		style="@style/Widget.Material3.CardView.Filled"
-		android:layout_width="match_parent"
-		android:layout_height="wrap_content"
-		android:layout_marginTop="12dp"
-		app:layout_constraintTop_toBottomOf="@id/serverStatusCard">
-
-		<androidx.constraintlayout.widget.ConstraintLayout
-			android:layout_width="match_parent"
-			android:layout_height="wrap_content"
-			android:padding="16dp">
-
-			<TextView
-				android:id="@+id/settingsTitle"
-				style="@style/TextAppearance.Material3.TitleSmall"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:text="@string/server_settings"
-				app:layout_constraintStart_toStartOf="parent"
-				app:layout_constraintTop_toTopOf="parent" />
-
-			<TextView
-				android:id="@+id/gameSpinnerLabel"
-				style="@style/TextAppearance.Material3.BodyMedium"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:layout_marginTop="12dp"
-				android:text="@string/server_game"
-				app:layout_constraintStart_toStartOf="parent"
-				app:layout_constraintTop_toBottomOf="@id/settingsTitle" />
-
-			<androidx.appcompat.widget.AppCompatSpinner
-				android:id="@+id/gameSpinner"
-				android:layout_width="0dp"
-				android:layout_height="wrap_content"
-				android:layout_marginTop="4dp"
-				app:layout_constraintEnd_toEndOf="parent"
-				app:layout_constraintStart_toStartOf="parent"
-				app:layout_constraintTop_toBottomOf="@id/gameSpinnerLabel" />
-
-			<com.google.android.material.textfield.TextInputLayout
-				android:id="@+id/extraArgsLayout"
-				style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
-				android:layout_width="0dp"
-				android:layout_height="wrap_content"
-				android:layout_marginTop="12dp"
-				android:hint="@string/server_extra_args"
-				app:layout_constraintEnd_toEndOf="parent"
-				app:layout_constraintStart_toStartOf="parent"
-				app:layout_constraintTop_toBottomOf="@id/gameSpinner">
-
-				<com.google.android.material.textfield.TextInputEditText
-					android:id="@+id/extraArgsInput"
-					android:layout_width="match_parent"
-					android:layout_height="wrap_content"
-					android:inputType="text"
-					android:text="+map crossfire +port 27015 +maxplayers 16" />
-			</com.google.android.material.textfield.TextInputLayout>
-
-		</androidx.constraintlayout.widget.ConstraintLayout>
-	</com.google.android.material.card.MaterialCardView>
+	android:fillViewport="true"
+	android:background="@color/hl_dark_grey">
 
 	<LinearLayout
-		android:id="@+id/serverButtons"
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
-		android:layout_marginTop="16dp"
-		android:gravity="center_horizontal"
-		android:orientation="horizontal"
-		app:layout_constraintTop_toBottomOf="@id/serverSettingsCard">
+		android:orientation="vertical"
+		android:padding="16dp">
 
-		<com.google.android.material.button.MaterialButton
-			android:id="@+id/startServerButton"
-			style="@style/Widget.Material3.Button"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:text="@string/dedicated_server_start"
-			app:icon="@drawable/ic_baseline_play_arrow_24" />
-
-		<com.google.android.material.button.MaterialButton
-			android:id="@+id/stopServerButton"
-			style="@style/Widget.Material3.Button"
-			android:layout_width="wrap_content"
-			android:layout_height="wrap_content"
-			android:layout_marginStart="12dp"
-			android:enabled="false"
-			android:text="@string/dedicated_server_stop"
-			app:icon="@drawable/ic_baseline_stop_24" />
-	</LinearLayout>
-
-	<com.google.android.material.card.MaterialCardView
-		android:id="@+id/serverConsoleCard"
-		style="@style/Widget.Material3.CardView.Filled"
-		android:layout_width="match_parent"
-		android:layout_height="0dp"
-		android:layout_marginTop="12dp"
-		app:layout_constraintBottom_toBottomOf="parent"
-		app:layout_constraintTop_toBottomOf="@id/serverButtons">
-
-		<LinearLayout
+		<com.google.android.material.card.MaterialCardView
+			android:id="@+id/serverStatusCard"
+			style="@style/Widget.Material3.CardView.Filled"
 			android:layout_width="match_parent"
-			android:layout_height="match_parent"
-			android:orientation="vertical"
-			android:padding="8dp">
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="12dp"
+			app:cardBackgroundColor="@color/hl_grey">
 
-			<TextView
-				style="@style/TextAppearance.Material3.TitleSmall"
-				android:layout_width="wrap_content"
-				android:layout_height="wrap_content"
-				android:text="@string/server_console" />
-
-			<ScrollView
-				android:id="@+id/consoleScroll"
+			<androidx.constraintlayout.widget.ConstraintLayout
 				android:layout_width="match_parent"
-				android:layout_height="match_parent"
-				android:layout_marginTop="8dp"
-				android:fillViewport="true">
+				android:layout_height="wrap_content"
+				android:padding="16dp">
 
 				<TextView
-					android:id="@+id/serverConsole"
+					android:id="@+id/serverStatusTitle"
+					style="@style/TextAppearance.Material3.TitleMedium"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="@string/dedicated_server"
+					android:textColor="@android:color/white"
+					app:layout_constraintStart_toStartOf="parent"
+					app:layout_constraintTop_toTopOf="parent" />
+
+				<TextView
+					android:id="@+id/serverStatusLabel"
+					style="@style/TextAppearance.Material3.TitleSmall"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="@string/server_status_stopped"
+					android:textColor="@color/hl_orange"
+					app:layout_constraintEnd_toEndOf="parent"
+					app:layout_constraintTop_toTopOf="parent" />
+			</androidx.constraintlayout.widget.ConstraintLayout>
+		</com.google.android.material.card.MaterialCardView>
+
+		<com.google.android.material.card.MaterialCardView
+			android:id="@+id/serverSettingsCard"
+			style="@style/Widget.Material3.CardView.Filled"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="12dp"
+			app:cardBackgroundColor="@color/hl_grey">
+
+			<LinearLayout
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:orientation="vertical"
+				android:padding="16dp">
+
+				<TextView
+					android:id="@+id/settingsTitle"
+					style="@style/TextAppearance.Material3.TitleSmall"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="@string/server_settings"
+					android:textColor="@android:color/white" />
+
+				<com.google.android.material.textview.MaterialTextView
 					android:layout_width="match_parent"
 					android:layout_height="wrap_content"
-					android:fontFamily="monospace"
-					android:padding="4dp"
-					android:textColor="@android:color/white"
-					android:textSize="11sp"
-					tools:text="> Server stopped\n" />
+					android:layout_marginTop="6dp"
+					android:text="@string/server_console"
+					android:textColor="@android:color/darker_gray"
+					android:textSize="12sp"
+					tools:text="Choose the game, set extra arguments and start the local server." />
 
-			</ScrollView>
+				<TextView
+					android:id="@+id/gameSpinnerLabel"
+					style="@style/TextAppearance.Material3.BodyMedium"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="12dp"
+					android:text="@string/server_game"
+					android:textColor="@android:color/white" />
+
+				<androidx.appcompat.widget.AppCompatSpinner
+					android:id="@+id/gameSpinner"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="4dp" />
+
+				<com.google.android.material.textfield.TextInputLayout
+					android:id="@+id/extraArgsLayout"
+					style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="12dp"
+					android:hint="@string/server_extra_args"
+					app:boxBackgroundColor="@color/hl_dark_grey"
+					app:boxStrokeColor="@color/hl_orange">
+
+					<com.google.android.material.textfield.TextInputEditText
+						android:id="@+id/extraArgsInput"
+						android:layout_width="match_parent"
+						android:layout_height="wrap_content"
+						android:inputType="text"
+						android:text="+map crossfire +port 27015 +maxplayers 16" />
+				</com.google.android.material.textfield.TextInputLayout>
+			</LinearLayout>
+		</com.google.android.material.card.MaterialCardView>
+
+		<LinearLayout
+			android:id="@+id/serverButtons"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="12dp"
+			android:gravity="center_horizontal"
+			android:orientation="horizontal">
+
+			<com.google.android.material.button.MaterialButton
+				android:id="@+id/startServerButton"
+				style="@style/Widget.Material3.Button"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_weight="1"
+				android:text="@string/dedicated_server_start"
+				app:icon="@drawable/ic_baseline_play_arrow_24" />
+
+			<com.google.android.material.button.MaterialButton
+				android:id="@+id/stopServerButton"
+				style="@style/Widget.Material3.Button"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_marginStart="12dp"
+				android:layout_weight="1"
+				android:enabled="false"
+				android:text="@string/dedicated_server_stop"
+				app:icon="@drawable/ic_baseline_stop_24" />
 		</LinearLayout>
-	</com.google.android.material.card.MaterialCardView>
-</androidx.constraintlayout.widget.ConstraintLayout>
+
+		<com.google.android.material.card.MaterialCardView
+			android:id="@+id/serverConsoleCard"
+			style="@style/Widget.Material3.CardView.Filled"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			app:cardBackgroundColor="@color/hl_grey">
+
+			<LinearLayout
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:orientation="vertical"
+				android:padding="12dp">
+
+				<TextView
+					style="@style/TextAppearance.Material3.TitleSmall"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="@string/server_console"
+					android:textColor="@android:color/white" />
+
+				<ScrollView
+					android:id="@+id/consoleScroll"
+					android:layout_width="match_parent"
+					android:layout_height="320dp"
+					android:layout_marginTop="8dp"
+					android:fillViewport="true">
+
+					<TextView
+						android:id="@+id/serverConsole"
+						android:layout_width="match_parent"
+						android:layout_height="wrap_content"
+						android:fontFamily="monospace"
+						android:padding="4dp"
+						android:textColor="@android:color/white"
+						android:textSize="11sp"
+						tools:text="> Server stopped\n" />
+				</ScrollView>
+			</LinearLayout>
+		</com.google.android.material.card.MaterialCardView>
+	</LinearLayout>
+</androidx.core.widget.NestedScrollView>

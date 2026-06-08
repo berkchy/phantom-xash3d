@@ -6,27 +6,186 @@
 	android:layout_width="match_parent"
 	android:layout_height="match_parent">
 
-	<FrameLayout
+	<androidx.constraintlayout.widget.ConstraintLayout
 		android:layout_width="match_parent"
-		android:layout_height="match_parent">
+		android:layout_height="match_parent"
+		android:background="@color/hl_dark_grey"
+		android:padding="12dp">
+
+		<com.google.android.material.card.MaterialCardView
+			android:id="@+id/libraryHeroCard"
+			style="@style/Widget.Material3.CardView.Filled"
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			app:cardBackgroundColor="@color/hl_grey"
+			app:layout_constraintEnd_toEndOf="parent"
+			app:layout_constraintStart_toStartOf="parent"
+			app:layout_constraintTop_toTopOf="parent">
+
+			<androidx.constraintlayout.widget.ConstraintLayout
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:padding="14dp">
+
+				<ImageView
+					android:id="@+id/libraryHeroIcon"
+					android:layout_width="40dp"
+					android:layout_height="40dp"
+					android:importantForAccessibility="no"
+					android:src="@drawable/ic_baseline_folder_open_24"
+					app:tint="@color/hl_orange"
+					app:layout_constraintBottom_toBottomOf="parent"
+					app:layout_constraintStart_toStartOf="parent"
+					app:layout_constraintTop_toTopOf="parent" />
+
+				<com.google.android.material.textview.MaterialTextView
+					android:id="@+id/libraryTitle"
+					style="@style/TextAppearance.Material3.TitleLarge"
+					android:layout_width="0dp"
+					android:layout_height="wrap_content"
+					android:text="@string/library"
+					android:textColor="@android:color/white"
+					app:layout_constraintEnd_toEndOf="parent"
+					app:layout_constraintStart_toEndOf="@id/libraryHeroIcon"
+					app:layout_constraintTop_toTopOf="parent" />
+
+				<com.google.android.material.textview.MaterialTextView
+					android:id="@+id/librarySubtitle"
+					style="@style/TextAppearance.Material3.BodyMedium"
+					android:layout_width="0dp"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="3dp"
+					android:text="@string/library_subtitle"
+					android:textColor="@android:color/darker_gray"
+					app:layout_constraintEnd_toEndOf="parent"
+					app:layout_constraintStart_toEndOf="@id/libraryHeroIcon"
+					app:layout_constraintTop_toBottomOf="@id/libraryTitle" />
+
+				<com.google.android.material.textview.MaterialTextView
+					android:id="@+id/libraryCount"
+					style="@style/TextAppearance.Material3.LabelLarge"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="8dp"
+					android:textColor="@color/hl_orange"
+					app:layout_constraintStart_toEndOf="@id/libraryHeroIcon"
+					app:layout_constraintTop_toBottomOf="@id/librarySubtitle"
+					tools:text="12 games installed" />
+			</androidx.constraintlayout.widget.ConstraintLayout>
+		</com.google.android.material.card.MaterialCardView>
+
+		<com.google.android.material.textfield.TextInputLayout
+			android:id="@+id/searchLayout"
+			style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="10dp"
+			android:hint="@string/search_games"
+			app:boxBackgroundColor="@color/hl_grey"
+			app:boxStrokeColor="@color/hl_orange"
+			app:endIconMode="clear_text"
+			app:startIconDrawable="@drawable/ic_baseline_search_24"
+			app:layout_constraintEnd_toEndOf="parent"
+			app:layout_constraintStart_toStartOf="parent"
+			app:layout_constraintTop_toBottomOf="@id/libraryHeroCard">
+
+			<com.google.android.material.textfield.TextInputEditText
+				android:id="@+id/searchInput"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:imeOptions="actionSearch"
+				android:inputType="text"
+				android:singleLine="true" />
+		</com.google.android.material.textfield.TextInputLayout>
+
+		<com.google.android.material.button.MaterialButtonToggleGroup
+			android:id="@+id/viewToggleGroup"
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="10dp"
+			app:checkedButton="@id/gridViewButton"
+			app:selectionRequired="true"
+			app:singleSelection="true"
+			app:layout_constraintEnd_toEndOf="parent"
+			app:layout_constraintStart_toStartOf="parent"
+			app:layout_constraintTop_toBottomOf="@id/searchLayout">
+
+			<com.google.android.material.button.MaterialButton
+				android:id="@+id/listViewButton"
+				style="@style/Widget.Material3.Button.OutlinedButton"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_weight="1"
+				android:text="@string/list_view"
+				app:icon="@drawable/ic_baseline_view_list_24" />
+
+			<com.google.android.material.button.MaterialButton
+				android:id="@+id/gridViewButton"
+				style="@style/Widget.Material3.Button.OutlinedButton"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_weight="1"
+				android:text="@string/grid_view"
+				app:icon="@drawable/ic_baseline_view_module_24" />
+		</com.google.android.material.button.MaterialButtonToggleGroup>
+
+		<com.google.android.material.button.MaterialButtonToggleGroup
+			android:id="@+id/sortToggleGroup"
+			android:layout_width="0dp"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="8dp"
+			app:checkedButton="@id/sortAscButton"
+			app:selectionRequired="true"
+			app:singleSelection="true"
+			app:layout_constraintEnd_toEndOf="parent"
+			app:layout_constraintStart_toStartOf="parent"
+			app:layout_constraintTop_toBottomOf="@id/viewToggleGroup">
+
+			<com.google.android.material.button.MaterialButton
+				android:id="@+id/sortAscButton"
+				style="@style/Widget.Material3.Button.OutlinedButton"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_weight="1"
+				android:text="@string/sort_name_asc"
+				app:icon="@drawable/ic_baseline_sort_24" />
+
+			<com.google.android.material.button.MaterialButton
+				android:id="@+id/sortDescButton"
+				style="@style/Widget.Material3.Button.OutlinedButton"
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_weight="1"
+				android:text="@string/sort_name_desc"
+				app:icon="@drawable/ic_baseline_sort_24" />
+		</com.google.android.material.button.MaterialButtonToggleGroup>
 
 		<androidx.recyclerview.widget.RecyclerView
 			android:id="@+id/gamesList"
-			android:layout_width="match_parent"
-			android:layout_height="match_parent"
+			android:layout_width="0dp"
+			android:layout_height="0dp"
+			android:layout_marginTop="12dp"
 			android:clipToPadding="false"
-			android:paddingHorizontal="8dp"
+			android:paddingBottom="8dp"
 			app:layoutManager="LinearLayoutManager"
+			app:layout_constraintBottom_toBottomOf="parent"
+			app:layout_constraintEnd_toEndOf="parent"
+			app:layout_constraintStart_toStartOf="parent"
+			app:layout_constraintTop_toBottomOf="@id/sortToggleGroup"
 			tools:listitem="@layout/card_game" />
 
 		<LinearLayout
 			android:id="@+id/emptyState"
-			android:layout_width="match_parent"
-			android:layout_height="match_parent"
+			android:layout_width="0dp"
+			android:layout_height="0dp"
 			android:gravity="center"
 			android:orientation="vertical"
-			android:padding="32dp"
-			android:visibility="gone">
+			android:padding="24dp"
+			android:visibility="gone"
+			app:layout_constraintBottom_toBottomOf="parent"
+			app:layout_constraintEnd_toEndOf="parent"
+			app:layout_constraintStart_toStartOf="parent"
+			app:layout_constraintTop_toBottomOf="@id/sortToggleGroup">
 
 			<ImageView
 				android:layout_width="64dp"
@@ -60,6 +219,6 @@
 				android:layout_marginTop="24dp"
 				android:text="@string/go_to_settings" />
 		</LinearLayout>
-	</FrameLayout>
+	</androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>

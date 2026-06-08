@@ -781,7 +781,14 @@ static void R_BuildLightMap( const msurface_t *surf, byte *dest, int stride, qbo
 
 				dst[i] = LightToTexGamma( t ) >> 2;
 			}
-			if( gl_light_override.value > 0 )
+			const qboolean use_light_override =
+				gl_light_override.value > 0.0f ||
+				gl_light_r.value != 255.0f ||
+				gl_light_g.value != 255.0f ||
+				gl_light_b.value != 255.0f ||
+				gl_light_a.value != 255.0f;
+
+			if( use_light_override )
 			{
 				dst[0] = (byte)((int)dst[0] * (int)gl_light_r.value / 255 );
 				dst[1] = (byte)((int)dst[1] * (int)gl_light_g.value / 255 );
@@ -3979,4 +3986,3 @@ void GL_BuildLightmaps( void )
 		gEngfuncs.drawFuncs->GL_BuildLightmaps( );
 	}
 }
-

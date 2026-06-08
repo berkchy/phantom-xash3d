@@ -1,33 +1,208 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
 	xmlns:app="http://schemas.android.com/apk/res-auto"
 	xmlns:tools="http://schemas.android.com/tools"
 	android:layout_width="match_parent"
-	android:layout_height="match_parent">
+	android:layout_height="match_parent"
+	android:fillViewport="true"
+	android:background="@color/hl_dark_grey">
 
-	<include
-		android:id="@+id/gameCard"
-		layout="@layout/card_game"
+	<LinearLayout
 		android:layout_width="match_parent"
 		android:layout_height="wrap_content"
-		android:layout_margin="8dp"
-		app:layout_constraintTop_toTopOf="parent" />
+		android:orientation="vertical"
+		android:padding="16dp">
 
-	<androidx.fragment.app.FragmentContainerView
-		android:id="@+id/settingsFragment"
-		android:layout_width="match_parent"
-		android:layout_height="0dp"
-		app:layout_constraintTop_toBottomOf="@id/gameCard"
-		app:layout_constraintBottom_toBottomOf="parent"
-		tools:layout="@android:layout/list_content">
+		<com.google.android.material.card.MaterialCardView
+			android:id="@+id/gameHeroCard"
+			style="@style/Widget.Material3.CardView.Filled"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="12dp"
+			app:cardBackgroundColor="@color/hl_grey">
 
-	</androidx.fragment.app.FragmentContainerView>
+			<androidx.constraintlayout.widget.ConstraintLayout
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:padding="14dp">
 
-	<!--    <com.google.android.material.bottomnavigation.BottomNavigationView-->
-	<!--        android:id="@+id/bottomNavigation"-->
-	<!--        style="@style/Widget.MaterialComponents.BottomNavigationView.Colored"-->
-	<!--        android:layout_width="match_parent"-->
-	<!--        android:layout_height="wrap_content"-->
-	<!--        app:layout_constraintBottom_toBottomOf="parent"-->
-	<!--        app:menu="@menu/menu_game_settings" />-->
-</androidx.constraintlayout.widget.ConstraintLayout>
+				<ImageView
+					android:id="@+id/gameCover"
+					android:layout_width="0dp"
+					android:layout_height="160dp"
+					android:adjustViewBounds="true"
+					android:scaleType="centerCrop"
+					app:layout_constraintBottom_toBottomOf="parent"
+					app:layout_constraintEnd_toEndOf="parent"
+					app:layout_constraintStart_toStartOf="parent"
+					app:layout_constraintTop_toTopOf="parent"
+					tools:src="@android:mipmap/sym_def_app_icon" />
+
+				<View
+					android:layout_width="0dp"
+					android:layout_height="160dp"
+					android:background="@drawable/launcher_card_gradient"
+					app:layout_constraintBottom_toBottomOf="@id/gameCover"
+					app:layout_constraintEnd_toEndOf="@id/gameCover"
+					app:layout_constraintStart_toStartOf="@id/gameCover"
+					app:layout_constraintTop_toTopOf="@id/gameCover" />
+
+				<ImageView
+					android:id="@+id/gameIcon"
+					android:layout_width="42dp"
+					android:layout_height="42dp"
+					android:layout_marginStart="10dp"
+					android:layout_marginBottom="10dp"
+					android:importantForAccessibility="no"
+					app:layout_constraintBottom_toBottomOf="@id/gameCover"
+					app:layout_constraintStart_toStartOf="@id/gameCover"
+					tools:src="@android:mipmap/sym_def_app_icon" />
+
+				<com.google.android.material.textview.MaterialTextView
+					android:id="@+id/gameTitle"
+					style="@style/TextAppearance.Material3.TitleLarge"
+					android:layout_width="0dp"
+					android:layout_height="wrap_content"
+					android:layout_marginStart="10dp"
+					android:layout_marginEnd="12dp"
+					android:textColor="@android:color/white"
+					android:singleLine="true"
+					android:ellipsize="end"
+					app:layout_constraintBottom_toTopOf="@id/gameSubtitle"
+					app:layout_constraintEnd_toEndOf="@id/gameCover"
+					app:layout_constraintStart_toEndOf="@id/gameIcon"
+					app:layout_constraintTop_toTopOf="@id/gameIcon"
+					tools:text="Half-Life" />
+
+				<com.google.android.material.textview.MaterialTextView
+					android:id="@+id/gameSubtitle"
+					style="@style/TextAppearance.Material3.BodySmall"
+					android:layout_width="0dp"
+					android:layout_height="wrap_content"
+					android:layout_marginStart="10dp"
+					android:layout_marginEnd="12dp"
+					android:alpha="0.9"
+					android:textColor="@android:color/white"
+					android:singleLine="true"
+					android:ellipsize="end"
+					app:layout_constraintBottom_toBottomOf="@id/gameIcon"
+					app:layout_constraintEnd_toEndOf="@id/gameCover"
+					app:layout_constraintStart_toEndOf="@id/gameIcon"
+					tools:text="valve" />
+			</androidx.constraintlayout.widget.ConstraintLayout>
+		</com.google.android.material.card.MaterialCardView>
+
+		<com.google.android.material.card.MaterialCardView
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="12dp"
+			app:cardBackgroundColor="@color/hl_grey">
+
+			<LinearLayout
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:orientation="vertical"
+				android:padding="16dp">
+
+				<com.google.android.material.textview.MaterialTextView
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="@string/game_settings"
+					android:textColor="@android:color/white"
+					android:textSize="16sp"
+					android:textStyle="bold" />
+
+				<com.google.android.material.textfield.TextInputLayout
+					android:id="@+id/argumentsLayout"
+					style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="12dp"
+					android:hint="@string/game_settings_command_line"
+					app:boxBackgroundColor="@color/hl_dark_grey"
+					app:boxStrokeColor="@color/hl_orange">
+
+					<com.google.android.material.textfield.TextInputEditText
+						android:id="@+id/argumentsInput"
+						android:layout_width="match_parent"
+						android:layout_height="wrap_content"
+						android:inputType="text"
+						android:singleLine="true" />
+				</com.google.android.material.textfield.TextInputLayout>
+
+				<com.google.android.material.materialswitch.MaterialSwitch
+					android:id="@+id/useVolumeButtonsSwitch"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="12dp"
+					android:text="@string/game_settings_volume_buttons" />
+
+				<com.google.android.material.materialswitch.MaterialSwitch
+					android:id="@+id/enableYapbSwitch"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="4dp"
+					android:text="@string/game_settings_yapb_bots" />
+			</LinearLayout>
+		</com.google.android.material.card.MaterialCardView>
+
+		<com.google.android.material.card.MaterialCardView
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginBottom="12dp"
+			app:cardBackgroundColor="@color/hl_grey">
+
+			<LinearLayout
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:orientation="vertical"
+				android:padding="16dp">
+
+				<com.google.android.material.textview.MaterialTextView
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:text="@string/source_repo"
+					android:textColor="@android:color/white"
+					android:textSize="16sp"
+					android:textStyle="bold" />
+
+				<com.google.android.material.textview.MaterialTextView
+					android:id="@+id/sourceUrlValue"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="10dp"
+					android:textColor="@color/hl_orange"
+					android:textSize="13sp"
+					android:textStyle="bold"
+					tools:text="https://github.com/..." />
+
+				<com.google.android.material.textview.MaterialTextView
+					android:id="@+id/sourceBranchValue"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="8dp"
+					android:textColor="@android:color/darker_gray"
+					android:textSize="12sp"
+					tools:text="Branch: master" />
+
+				<com.google.android.material.textview.MaterialTextView
+					android:id="@+id/sourceCommitValue"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="4dp"
+					android:textColor="@android:color/darker_gray"
+					android:textSize="12sp"
+					tools:text="Commit: abcdef" />
+
+				<com.google.android.material.textview.MaterialTextView
+					android:id="@+id/downloadedAtValue"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="4dp"
+					android:textColor="@android:color/darker_gray"
+					android:textSize="12sp"
+					tools:text="Downloaded: now" />
+			</LinearLayout>
+		</com.google.android.material.card.MaterialCardView>
+	</LinearLayout>
+</androidx.core.widget.NestedScrollView>
